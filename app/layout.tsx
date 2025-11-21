@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "iQShutrl - Find Your Best Moment",
-  description: "Browse, search, and relive your favorite event experience instantly",
+  title: "Shutr - Find Your Best Moment",
+  description:
+    "Browse, search, and relive your favorite event experience instantly",
 };
 
 export default function RootLayout({
@@ -28,9 +29,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-      <Providers>
-        {children}
-      </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

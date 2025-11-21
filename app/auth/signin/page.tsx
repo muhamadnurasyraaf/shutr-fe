@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { signIn } from 'next-auth/react';
-import { useState } from 'react';
-import Link from 'next/link';
+import { signIn } from "next-auth/react";
+import { useState } from "react";
+import Link from "next/link";
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
@@ -12,10 +12,10 @@ export default function SignIn() {
     try {
       setIsLoading(true);
       setError(null);
-      await signIn('google', { callbackUrl: '/' });
+      await signIn("google", { callbackUrl: "/" });
     } catch (err) {
-      setError('Failed to sign in. Please try again.');
-      console.error('Sign in error:', err);
+      setError("Failed to sign in. Please try again.");
+      console.error("Sign in error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -28,7 +28,7 @@ export default function SignIn() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-8">
             <div className="text-2xl font-bold">
-              <span className="text-blue-400">iQ</span><span className="text-white">Shutr</span>
+              <span className="text-white">Shutr</span>
             </div>
           </Link>
         </div>
@@ -37,7 +37,7 @@ export default function SignIn() {
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 shadow-xl">
           {/* Heading */}
           <h1 className="text-2xl font-bold text-white text-center mb-2">
-            Welcome to iQShutrl
+            Welcome to Shutrl
           </h1>
           <p className="text-center text-gray-400 text-sm mb-8">
             Find your best moments from your favorite events
@@ -56,7 +56,12 @@ export default function SignIn() {
             disabled={isLoading}
             className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white text-black font-semibold rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-6"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              className="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 fill="currentColor"
@@ -74,7 +79,7 @@ export default function SignIn() {
                 fill="currentColor"
               />
             </svg>
-            {isLoading ? 'Signing in...' : 'Continue with Google'}
+            {isLoading ? "Signing in..." : "Continue with Google"}
           </button>
 
           {/* Divider */}
@@ -83,7 +88,9 @@ export default function SignIn() {
               <div className="w-full border-t border-gray-700" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-900 text-gray-400">Or continue as guest</span>
+              <span className="px-2 bg-gray-900 text-gray-400">
+                Or continue as guest
+              </span>
             </div>
           </div>
 

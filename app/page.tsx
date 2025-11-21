@@ -1,32 +1,33 @@
-'use client';
+"use client";
 
-import { useSession, signIn } from 'next-auth/react';
-import Image from 'next/image';
-import { useState } from 'react';
-import { Header } from './components/Header';
+import { useSession, signIn } from "next-auth/react";
+import Image from "next/image";
+import { useState } from "react";
+import { Header } from "./components/Header";
 
 export default function Home() {
   const { data: session } = useSession();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const thumbnailUrl = "/thumbnail.png";
 
   // Sample event data
   const events = [
     {
       id: 1,
-      name: 'Score Marathon 2025',
-      image: '/event-placeholder.jpg',
+      name: "Score Marathon 2025",
+      image: thumbnailUrl,
       photographers: 24,
     },
     {
       id: 2,
-      name: 'Score Marathon 2025',
-      image: '/event-placeholder.jpg',
+      name: "Score Marathon 2025",
+      image: thumbnailUrl,
       photographers: 24,
     },
     {
       id: 3,
-      name: 'Score Marathon 2025',
-      image: '/event-placeholder.jpg',
+      name: "Score Marathon 2025",
+      image: thumbnailUrl,
       photographers: 24,
     },
   ];
@@ -34,13 +35,15 @@ export default function Home() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen bg-slate-100">
         {/* Hero Section */}
         <section
           className="relative w-full h-screen bg-cover bg-center flex items-center justify-center"
           style={{
-            backgroundImage:
-              'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("/hero-bg.jpg")',
+            backgroundImage: 'url("/landing_page_image.png")',
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
           }}
         >
           <div className="absolute inset-0 bg-linear-to-b from-black/40 via-black/50 to-black/80" />
@@ -51,12 +54,15 @@ export default function Home() {
               <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
                 Find Your Best Moment.
               </h1>
-              <p className="text-2xl md:text-4xl font-light text-cyan-400">Instantly.</p>
+              <p className="text-2xl md:text-4xl font-light text-cyan-400">
+                Instantly.
+              </p>
             </div>
 
             {/* Subtitle */}
             <p className="text-center text-white/80 text-lg mb-8 max-w-2xl">
-              Browse, search, and relive your favorite event experience in just a few clicks.
+              Browse, search, and relive your favorite event experience in just
+              a few clicks.
             </p>
 
             {/* Search Bar */}
@@ -78,7 +84,7 @@ export default function Home() {
             {/* CTA if not signed in */}
             {!session && (
               <button
-                onClick={() => signIn('google')}
+                onClick={() => signIn("google")}
                 className="mt-8 px-8 py-3 bg-cyan-400 text-black font-semibold rounded hover:bg-cyan-300 transition-colors"
               >
                 Continue with Google to Get Started
@@ -100,9 +106,12 @@ export default function Home() {
                 <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-6 text-3xl">
                   📅
                 </div>
-                <h3 className="text-xl font-semibold text-black mb-3">Choose Your Event</h3>
+                <h3 className="text-xl font-semibold text-black mb-3">
+                  Choose Your Event
+                </h3>
                 <p className="text-gray-600">
-                  Select from 100+ covered events of your favorite sports and more.
+                  Select from 100+ covered events of your favorite sports and
+                  more.
                 </p>
               </div>
 
@@ -111,9 +120,12 @@ export default function Home() {
                 <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-6 text-3xl">
                   🔍
                 </div>
-                <h3 className="text-xl font-semibold text-black mb-3">Search Your Photos</h3>
+                <h3 className="text-xl font-semibold text-black mb-3">
+                  Search Your Photos
+                </h3>
                 <p className="text-gray-600">
-                  Upload your photo, name, and get results where you can view, filter, and like.
+                  Upload your photo, name, and get results where you can view,
+                  filter, and like.
                 </p>
               </div>
 
@@ -122,9 +134,12 @@ export default function Home() {
                 <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-6 text-3xl">
                   ⬇️
                 </div>
-                <h3 className="text-xl font-semibold text-black mb-3">Download Your Memories</h3>
+                <h3 className="text-xl font-semibold text-black mb-3">
+                  Download Your Memories
+                </h3>
                 <p className="text-gray-600">
-                  Purchase and download high-resolution photos of your best memories.
+                  Purchase and download high-resolution photos of your best
+                  memories.
                 </p>
               </div>
             </div>
@@ -134,7 +149,9 @@ export default function Home() {
         {/* Browse Recent Events Section */}
         <section className="py-20 px-4 bg-black">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-white">Browse Recent Events</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-white">
+              Browse Recent Events
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {events.map((event) => (
@@ -143,12 +160,19 @@ export default function Home() {
                   className="rounded-lg overflow-hidden bg-gray-900 hover:transform hover:scale-105 transition-all duration-300 cursor-pointer"
                 >
                   {/* Event Image Placeholder */}
-                  <div className="w-full h-48 bg-linear-to-br from-blue-500 to-cyan-400 flex items-center justify-center">
-                    <span className="text-white text-3xl">📸</span>
+                  <div className="relative w-full h-48">
+                    <Image
+                      src={event.image}
+                      alt={event.name || "Event image"}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
 
                   <div className="p-4">
-                    <h3 className="text-lg font-semibold text-white mb-2">{event.name}</h3>
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      {event.name}
+                    </h3>
                     <p className="text-gray-400 text-sm mb-4">
                       {event.photographers} photographers
                     </p>
@@ -165,7 +189,7 @@ export default function Home() {
         {/* Footer */}
         <footer className="bg-gray-950 border-t border-gray-800 py-12 px-4">
           <div className="max-w-7xl mx-auto text-center text-gray-400 text-sm">
-            <p>&copy; 2025 iQShutrl. All rights reserved.</p>
+            <p>&copy; 2025 Shutr. All rights reserved.</p>
           </div>
         </footer>
       </div>
