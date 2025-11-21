@@ -12,7 +12,7 @@ export default function SignIn() {
     try {
       setIsLoading(true);
       setError(null);
-      await signIn("google", { callbackUrl: "/" });
+      await signIn("google", { callbackUrl: "/profile" });
     } catch (err) {
       setError("Failed to sign in. Please try again.");
       console.error("Sign in error:", err);

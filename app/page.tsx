@@ -79,22 +79,17 @@ export default function Home() {
                   🔍
                 </button>
               </div>
+              <div className="flex justify-center mt-5">
+                <button className="px-6 py-3 bg-cyan-400 text-black font-semibold rounded hover:bg-cyan-300 transition-colors">
+                      Explore
+                </button>
+              </div>
             </div>
-
-            {/* CTA if not signed in */}
-            {!session && (
-              <button
-                onClick={() => signIn("google")}
-                className="mt-8 px-8 py-3 bg-cyan-400 text-black font-semibold rounded hover:bg-cyan-300 transition-colors"
-              >
-                Continue with Google to Get Started
-              </button>
-            )}
           </div>
         </section>
 
         {/* How It Works Section */}
-        <section className="py-20 px-4 bg-white">
+        <section className="py-20 px-4 bg-slate-300">
           <div className="max-w-7xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-black">
               How It Works
@@ -147,9 +142,9 @@ export default function Home() {
         </section>
 
         {/* Browse Recent Events Section */}
-        <section className="py-20 px-4 bg-black">
+        <section className="py-20 px-4 bg-slate-100">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-white">
+            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-black">
               Browse Recent Events
             </h2>
 
@@ -157,7 +152,7 @@ export default function Home() {
               {events.map((event) => (
                 <div
                   key={event.id}
-                  className="rounded-lg overflow-hidden bg-gray-900 hover:transform hover:scale-105 transition-all duration-300 cursor-pointer"
+                  className="rounded-lg overflow-hidden border border-black text-black  bg-white hover:transform hover:scale-105 transition-all duration-300 cursor-pointer"
                 >
                   {/* Event Image Placeholder */}
                   <div className="relative w-full h-48">
@@ -170,7 +165,7 @@ export default function Home() {
                   </div>
 
                   <div className="p-4">
-                    <h3 className="text-lg font-semibold text-white mb-2">
+                    <h3 className="text-lg font-semibold mb-2">
                       {event.name}
                     </h3>
                     <p className="text-gray-400 text-sm mb-4">

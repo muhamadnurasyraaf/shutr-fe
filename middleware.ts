@@ -2,7 +2,7 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 export default withAuth(
-  function middleware(req) {
+  function proxy(req) {
     const token = req.nextauth.token;
     const isAuth = !!token;
     const isAuthPage = req.nextUrl.pathname.startsWith("/auth");
@@ -23,7 +23,7 @@ export default withAuth(
       }
 
       return NextResponse.redirect(
-        new URL(`/auth/signin?from=${encodeURIComponent(from)}`, req.url),
+        new URL(`/auth/signin?from=${encodeURIComponent(from)}`, req.url)
       );
     }
   },
@@ -35,7 +35,7 @@ export default withAuth(
         return true; // We handle authorization in the middleware function above
       },
     },
-  },
+  }
 );
 
 // Specify which routes should use this middleware
