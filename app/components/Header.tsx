@@ -12,21 +12,70 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { User, LogOut } from "lucide-react"
+import { useState, useEffect } from "react"
 
-export function Header() {
+interface HeaderProps {
+  variant?: "transparent" | "solid"
+  textVariant?: "light" | "dark"
+}
+
+export function Header({ variant = "solid", textVariant = "light" }: HeaderProps) {
   const { data: session } = useSession()
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  useEffect(() => {
+    if (variant !== "transparent") return
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50)
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [variant])
+
+  // Determine styles based on variant and scroll state
+  const isTransparent = variant === "transparent" && !isScrolled
+  const bgClass = isTransparent 
+    ? "bg-transparent" 
+    : "bg-white backdrop-blur border-b border-gray-200"
+  
+  // Text color logic: if transparent header or textVariant is light, use white text
+  // Otherwise use dark text for white backgrounds
+  const useWhiteText = isTransparent || (variant === "solid" && textVariant === "light")
+  const textClass = useWhiteText ? "text-white" : "text-gray-900"
+  const hoverTextClass = useWhiteText ? "hover:text-cyan-400" : "hover:text-cyan-600"
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-black/95 backdrop-blur border-b border-white/10">
+    <header className={`fixed top-0 z-50 w-full transition-all duration-300 ${bgClass}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <div className="text-xl font-bold">
-              <span className="text-blue-400">S</span>
-              <span className="text-white">hutr</span>
+              <span className="text-cyan-400">S</span>
+              <span className={textClass}>hutr</span>
             </div>
           </Link>
+
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link href="/" className={`${textClass} ${hoverTextClass} transition-colors text-sm font-medium`}>
+              Home
+            </Link>
+            <Link href="/events" className={`${textClass} ${hoverTextClass} transition-colors text-sm font-medium`}>
+              Search Events
+            </Link>
+            <Link href="/top-photographers" className={`${textClass} ${hoverTextClass} transition-colors text-sm font-medium`}>
+              Top Photographers
+            </Link>
+            <Link href="/help" className={`${textClass} ${hoverTextClass} transition-colors text-sm font-medium`}>
+              Help / FAQ
+            </Link>
+            <Link href="/contact" className={`${textClass} ${hoverTextClass} transition-colors text-sm font-medium`}>
+              Contact
+            </Link>
+          </nav>
 
           {/* Auth Buttons */}
           <div className="flex items-center gap-3">
@@ -40,15 +89,15 @@ export function Header() {
                     </AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-black/95 backdrop-blur border-white/10">
-                  <DropdownMenuLabel className="text-white/90">
+                <DropdownMenuContent align="end" className="w-56 bg-white border-gray-200">
+                  <DropdownMenuLabel className="text-gray-900">
                     <div className="flex flex-col gap-1">
                       <p className="text-sm font-medium">{session.user?.name || "User"}</p>
-                      <p className="text-xs text-white/50">{session.user?.email}</p>
+                      <p className="text-xs text-gray-500">{session.user?.email}</p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-white/10" />
-                  <DropdownMenuItem asChild className="text-white/70 hover:text-white hover:bg-white/10 cursor-pointer">
+                  <DropdownMenuSeparator className="bg-gray-200" />
+                  <DropdownMenuItem asChild className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer">
                     <Link href="/profile" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
                       <span>Profile</span>
@@ -56,7 +105,7 @@ export function Header() {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => signOut()}
-                    className="text-white/70 hover:text-white hover:bg-white/10 cursor-pointer"
+                    className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     <span>Sign Out</span>
@@ -64,12 +113,20 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <button
-                onClick={() => signIn("google")}
-                className="px-4 py-2 text-sm font-semibold text-white bg-cyan-400 rounded hover:bg-cyan-300 transition-colors"
-              >
-                Join as Creator
-              </button>
+              <>
+                <button
+                  onClick={() => signIn("google")}
+                  className={`px-4 py-2 text-sm font-medium ${textClass} ${hoverTextClass} transition-colors hidden sm:block`}
+                >
+                  Log In
+                </button>
+                <button
+                  onClick={() => signIn("google")}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-cyan-400 rounded hover:bg-cyan-500 transition-colors"
+                >
+                  Sign Up
+                </button>
+              </>
             )}
           </div>
         </div>

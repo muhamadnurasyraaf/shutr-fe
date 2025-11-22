@@ -5,312 +5,232 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Search, MapPin, Calendar, Users, Star, Camera, TrendingUp, Clock, Filter } from "lucide-react"
+import { Search, MapPin, Calendar, Camera } from "lucide-react"
 import { Header } from "../components/Header"
 
 // Mock data for photographers
 const topPhotographers = [
   {
     id: 1,
-    name: "Sarah Chen",
+    name: "John Meurhon",
     avatar: "/asian-woman-photographer.jpg",
-    specialty: "Wedding & Events",
-    rating: 4.9,
-    eventsShot: 127,
-    location: "San Francisco, CA",
-    verified: true,
   },
   {
     id: 2,
-    name: "Marcus Rodriguez",
+    name: "John Meurhon",
     avatar: "/latino-man-photographer.jpg",
-    specialty: "Sports & Action",
-    rating: 4.8,
-    eventsShot: 89,
-    location: "Austin, TX",
-    verified: true,
   },
   {
     id: 3,
-    name: "Emily Watson",
+    name: "John Meurhon",
     avatar: "/woman-photographer-with-camera.jpg",
-    specialty: "Corporate Events",
-    rating: 4.9,
-    eventsShot: 156,
-    location: "New York, NY",
-    verified: true,
-  },
-  {
-    id: 4,
-    name: "David Kim",
-    avatar: "/asian-man-photographer.png",
-    specialty: "Concerts & Music",
-    rating: 4.7,
-    eventsShot: 203,
-    location: "Los Angeles, CA",
-    verified: true,
   },
 ]
 
 const thumbnailUrl = "/thumbnail.png"
 
-// Mock data for recent events
+// Mock data for recent events - 6 events to match the image
 const recentEvents = [
   {
     id: 1,
-    title: "TechCrunch Disrupt 2025",
+    title: "Score Marathon 2025",
     image: thumbnailUrl,
-    date: "2025-11-20",
-    location: "San Francisco, CA",
-    photographer: "Sarah Chen",
-    photoCount: 342,
-    category: "Technology",
   },
   {
     id: 2,
-    title: "NBA Finals Game 7",
+    title: "Score Marathon 2025",
     image: thumbnailUrl,
-    date: "2025-11-19",
-    location: "Boston, MA",
-    photographer: "Marcus Rodriguez",
-    photoCount: 518,
-    category: "Sports",
   },
   {
     id: 3,
-    title: "Startup Founder Summit",
+    title: "Score Marathon 2025",
     image: thumbnailUrl,
-    date: "2025-11-18",
-    location: "Austin, TX",
-    photographer: "Emily Watson",
-    photoCount: 276,
-    category: "Business",
+  },
+  {
+    id: 4,
+    title: "Score Marathon 2025",
+    image: thumbnailUrl,
+  },
+  {
+    id: 5,
+    title: "Score Marathon 2025",
+    image: thumbnailUrl,
+  },
+  {
+    id: 6,
+    title: "Score Marathon 2025",
+    image: thumbnailUrl,
   },
 ]
 
 export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeFilter, setActiveFilter] = useState<"all" | "photographers" | "events">("all")
 
   return (
-    <div className="min-h-screen bg-background">
-    <Header />
-      <section className="relative overflow-hidden border-b border-border from-muted/30 via-background to-accent/20"
-      style={{
-            backgroundImage: 'url("/landing_page_image.png")',
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-          }}
-      >
-        <div className="container mx-auto px-4 py-16 md:py-24">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="mb-4 text-4xl font-bold tracking-tight text-white md:text-6xl">
-              Discover Amazing Photography
-            </h1>
-            <p className="mb-8 text-lg text-muted-foreground text-slate-300 md:text-xl">
-              Explore top photographers and recent events from around the world
-            </p>
+    <div className="min-h-screen bg-white">
+      <Header variant="solid" textVariant="dark"/>
+      
+      {/* Top Filter Section */}
+      <section className="bg-gray-50 border-b border-gray-200 pt-20 pb-8">
+        <div className="max-w-7xl mx-auto px-4">
+          <p className="text-sm text-gray-600 mb-4">
+            Showing results for "<span className="text-cyan-500">Marathon</span>"
+          </p>
+          
+          <div className="flex gap-3 mb-6">
+            <Button variant="outline" size="sm" className="rounded-full border-gray-300">
+              <MapPin className="h-4 w-4 mr-1" />
+              Filter events
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-full border-gray-300">
+              <Calendar className="h-4 w-4 mr-1" />
+              By date
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-full border-gray-300">
+              <Camera className="h-4 w-4 mr-1" />
+              By location
+            </Button>
+          </div>
 
-            {/* Search Bar */}
-            <div className="relative mx-auto max-w-2xl">
-              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search photographers, events, or locations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-14 pl-12 pr-4 text-lg"
-              />
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="mt-6 flex items-center justify-center gap-2">
-              <Button
-                variant={activeFilter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveFilter("all")}
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                All
-              </Button>
-              <Button
-                variant={activeFilter === "photographers" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveFilter("photographers")}
-              >
-                <Camera className="mr-2 h-4 w-4" />
-                Photographers
-              </Button>
-              <Button
-                variant={activeFilter === "events" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveFilter("events")}
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                Events
-              </Button>
-            </div>
+          {/* Search Bar */}
+          <div className="relative max-w-xl">
+            <Input
+              type="text"
+              placeholder="Enter Event Name / Photographer Profile"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-12 bg-white border-gray-300"
+            />
+            <button className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-cyan-400 text-white rounded hover:bg-cyan-500 transition-colors">
+              🔍
+            </button>
           </div>
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-12">
-        {/* Top Photographers Section */}
-        {(activeFilter === "all" || activeFilter === "photographers") && (
-          <section className="mb-16">
-            <div className="mb-8 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-6 w-6 text-primary" />
-                <h2 className="text-3xl font-bold text-foreground">Top Photographers</h2>
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        {/* Photographers Section */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Photographers</h2>
+
+          <div className="grid grid-cols-3 gap-6">
+            {topPhotographers.map((photographer) => (
+              <div
+                key={photographer.id}
+                className="flex flex-col items-center cursor-pointer"
+                onClick={() => console.log("Navigate to photographer:", photographer.name)}
+              >
+                <Avatar className="h-24 w-24 mb-3">
+                  <AvatarImage src={photographer.avatar || "/placeholder.svg"} alt={photographer.name} />
+                  <AvatarFallback className="bg-gray-200 text-gray-600">
+                    {photographer.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <h3 className="text-sm font-medium text-gray-900">{photographer.name}</h3>
               </div>
-              <Button variant="ghost">View All</Button>
-            </div>
+            ))}
+          </div>
+        </section>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {topPhotographers.map((photographer) => (
-                <Card
-                  key={photographer.id}
-                  className="group cursor-pointer overflow-hidden transition-all hover:shadow-xl hover:border-primary/50"
-                  onClick={() => console.log("Navigate to photographer:", photographer.name)}
-                >
-                  <CardContent className="p-6">
-                    <div className="mb-4 flex flex-col items-center text-center">
-                      <Avatar className="mb-4 h-24 w-24 border-4 border-border ring-2 ring-primary/20 transition-transform group-hover:scale-105">
-                        <AvatarImage src={photographer.avatar || "/placeholder.svg"} alt={photographer.name} />
-                        <AvatarFallback>
-                          {photographer.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
+        {/* Events Section */}
+        <section>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Events</h2>
 
-                      <h3 className="mb-1 text-lg font-semibold text-foreground">{photographer.name}</h3>
-                      <p className="mb-3 text-sm text-muted-foreground">{photographer.specialty}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {recentEvents.map((event) => (
+              <Card
+                key={event.id}
+                className="overflow-hidden border border-gray-300 cursor-pointer hover:shadow-lg transition-all"
+                onClick={() => console.log("Navigate to event:", event.title)}
+              >
+                <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                  <img
+                    src={event.image || "/placeholder.svg"}
+                    alt={event.title}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
 
-                      {/* Stats */}
-                      <div className="mb-4 flex w-full items-center justify-center gap-4 text-sm">
-                        <div className="flex items-center gap-1 text-amber-500">
-                          <Star className="h-4 w-4 fill-current" />
-                          <span className="font-semibold">{photographer.rating}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Camera className="h-4 w-4" />
-                          <span>{photographer.eventsShot}</span>
-                        </div>
-                      </div>
+                <CardContent className="p-4">
+                  <h3 className="text-base font-semibold text-gray-900 mb-3">
+                    {event.title}
+                  </h3>
+                  <Button
+                    size="sm"
+                    className="w-full bg-cyan-400 hover:bg-cyan-500 text-black font-medium"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      console.log("View photos:", event.title)
+                    }}
+                  >
+                    View Photos
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-                      {/* Location */}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        <span>{photographer.location}</span>
-                      </div>
-                    </div>
-
-                    <Button
-                      className="w-full bg-transparent"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        console.log("View profile:", photographer.name)
-                      }}
-                    >
-                      View Profile
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Recent Events Section */}
-        {(activeFilter === "all" || activeFilter === "events") && (
-          <section>
-            <div className="mb-8 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Clock className="h-6 w-6 text-primary" />
-                <h2 className="text-3xl font-bold text-foreground">Recent Events</h2>
-              </div>
-              <Button variant="ghost">View All</Button>
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {recentEvents.map((event) => (
-                <Card
-                  key={event.id}
-                  className="group cursor-pointer overflow-hidden transition-all hover:shadow-xl hover:border-primary/50"
-                  onClick={() => console.log("Navigate to event:", event.title)}
-                >
-                  <div className="relative aspect-[3/2] overflow-hidden bg-muted">
-                    <img
-                      src={event.image || "/placeholder.svg"}
-                      alt={event.title}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                    <Badge className="absolute right-3 top-3 bg-background/90 text-foreground hover:bg-background/90">
-                      {event.category}
-                    </Badge>
-                  </div>
-
-                  <CardContent className="p-5">
-                    <h3 className="mb-2 text-lg font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                      {event.title}
-                    </h3>
-
-                    <div className="mb-3 space-y-1 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        <span className="line-clamp-1">{event.location}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3.5 w-3.5 shrink-0" />
-                        <span>
-                          {new Date(event.date).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Camera className="h-3.5 w-3.5 shrink-0" />
-                        <span>by {event.photographer}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-sm font-medium text-primary">
-                        <Users className="h-4 w-4" />
-                        <span>{event.photoCount.toLocaleString()} photos</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          console.log("View photos:", event.title)
-                        }}
-                      >
-                        View Photos
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Load More */}
-            <div className="mt-12 flex justify-center">
-              <Button size="lg" variant="outline">
-                Load More Events
-              </Button>
-            </div>
-          </section>
-        )}
+          {/* Load More */}
+          <div className="mt-8 flex justify-center">
+            <Button 
+              variant="outline" 
+              className="border-cyan-400 text-cyan-500 hover:bg-cyan-50 px-8"
+            >
+              Load more
+            </Button>
+          </div>
+        </section>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 py-12 px-4 mt-20">
+        <div className="max-w-7xl mx-auto grid grid-cols-3 gap-8">
+          {/* Brand */}
+          <div>
+            <div className="text-xl font-bold mb-4">
+              <span className="text-cyan-400">S</span>
+              <span className="text-gray-900">hutr</span>
+            </div>
+            <p className="text-sm text-gray-500">
+              Find your best moment in every event photo.
+            </p>
+          </div>
+
+          {/* Quick Links */}
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3">Quick Links</h4>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li><a href="/events" className="hover:text-cyan-500">Search Events</a></li>
+              <li><a href="/photographers" className="hover:text-cyan-500">Find Photographers</a></li>
+              <li><a href="/faq" className="hover:text-cyan-500">Top Photographers</a></li>
+            </ul>
+          </div>
+
+          {/* Support & Legal */}
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3">Support</h4>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li><a href="/help" className="hover:text-cyan-500">Help Center</a></li>
+              <li><a href="/contact" className="hover:text-cyan-500">Contact Us</a></li>
+              <li><a href="/faq" className="hover:text-cyan-500">FAQ</a></li>
+            </ul>
+            
+            <h4 className="font-semibold text-gray-900 mb-3 mt-6">Legal</h4>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li><a href="/privacy" className="hover:text-cyan-500">Privacy Policy</a></li>
+              <li><a href="/terms" className="hover:text-cyan-500">Terms of Service</a></li>
+              <li><a href="/cookies" className="hover:text-cyan-500">Cookie Policy</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
+          <p>© 2025 Shutr. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   )
 }
