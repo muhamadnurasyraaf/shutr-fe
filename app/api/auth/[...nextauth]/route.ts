@@ -9,6 +9,8 @@ declare module "next-auth" {
       email?: string;
       name?: string;
       image?: string;
+      displayName?: string;
+      phoneNumber?: string;
     } & DefaultSession["user"];
   }
 }
@@ -16,6 +18,9 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     backendToken?: string;
+    userId?: string;
+    displayName?: string;
+    phoneNumber?: string;
   }
 }
 
@@ -27,51 +32,57 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
-      // Send user data to your NestJS backend
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: user.email,
-              name: user.name,
-              image: user.image,
-              googleId: account?.providerAccountId,
-            }),
+    async jwt({ token, user, account, trigger }) {
+      // On initial sign in, fetch user data from backend
+      if (account && user) {
+        console.log("Fetching backend data for user:", user.email);
+
+        try {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: user.email,
+                name: user.name,
+                image: user.image,
+                googleId: account.providerAccountId,
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("Backend response in JWT:", data);
+
+            // Store all data in the token
+            token.backendToken = data.accessToken;
+            token.userId = data.user.id;
+            token.displayName = data.user.displayName;
+            token.phoneNumber = data.user.phoneNumber;
+
+            console.log("Token after update:", token);
           }
-        );
-
-        if (!response.ok) return false;
-
-        const data = await response.json();
-        // Store backend token in the user object
-        const userData = user as typeof user & { backendToken?: string };
-        userData.backendToken = data.accessToken;
-
-        return true;
-      } catch (error) {
-        console.error("Backend auth error:", error);
-        return false;
-      }
-    },
-    async jwt({ token, user }) {
-      // Persist backend token to JWT
-      if (user) {
-        const userData = user as typeof user & { backendToken?: string };
-        if (userData.backendToken) {
-          token.backendToken = userData.backendToken;
+        } catch (error) {
+          console.error("Backend auth error:", error);
         }
       }
+
       return token;
     },
     async session({ session, token }) {
-      // Add backend token to session
+      console.log("Session callback - token:", token);
+
+      // Add all data from token to session
       if (session.user) {
         session.backendToken = token.backendToken;
+        session.user.id = token.userId;
+        session.user.displayName = token.displayName;
+        session.user.phoneNumber = token.phoneNumber;
       }
+
+      console.log("Session callback - final session:", session);
       return session;
     },
   },

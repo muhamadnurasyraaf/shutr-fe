@@ -10,7 +10,6 @@ export default function Home() {
   const { data: session } = useSession();
   const [searchQuery, setSearchQuery] = useState("");
   const thumbnailUrl = "/thumbnail.png";
-
   // Sample event data - 6 events to match the image
   const events = [
     {

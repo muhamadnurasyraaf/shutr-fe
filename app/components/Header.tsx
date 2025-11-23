@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, LogOut } from "lucide-react"
+import { User, LogOut, Camera } from "lucide-react"
 import { useState, useEffect } from "react"
 
 interface HeaderProps {
@@ -101,6 +101,12 @@ export function Header({ variant = "solid", textVariant = "light" }: HeaderProps
                     <Link href="/profile" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
                       <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer">
+                    <Link href="/self-contents" className="flex items-center gap-2">
+                      <Camera className="h-4 w-4" />
+                      <span>My Content</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem
