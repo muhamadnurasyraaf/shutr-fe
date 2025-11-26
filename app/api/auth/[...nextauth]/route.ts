@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthOptions, DefaultSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { cookies } from "next/headers";
 
 declare module "next-auth" {
   interface Session extends DefaultSession {
@@ -39,6 +40,9 @@ export const authOptions: NextAuthOptions = {
       if (account && user) {
         console.log("Fetching backend data for user:", user.email);
 
+        const cookieStore = await cookies();
+        const userType = cookieStore.get("pending_user_type")?.value;
+
         try {
           const response = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
@@ -46,6 +50,7 @@ export const authOptions: NextAuthOptions = {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
+                type: userType,
                 idToken: account.id_token,
               }),
             }

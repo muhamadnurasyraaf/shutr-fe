@@ -18,7 +18,8 @@ interface LandingPageProps {
   topPhotographers: {
     id: string;
     email: string;
-    displayName: string;
+    name: string;
+    displayName?: string | null;
     creatorInfo?: {
       location: string | null;
     };
@@ -240,7 +241,7 @@ export default function LandingPage({
                     <Camera className="w-10 h-10 text-gray-400" />
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                    {photographer.displayName}
+                    {photographer.displayName || photographer.name}
                   </h3>
                   <div className="flex items-center gap-1 text-amber-500 mb-1">
                     <Star className="w-4 h-4 fill-current" />

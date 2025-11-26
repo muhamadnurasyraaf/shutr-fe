@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,76 +12,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Search,
-  Download,
-  Trash2,
-  FolderOpen,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
-import { Header } from "@/app/components/Header";
+import { Search, Download, Trash2, FolderOpen } from "lucide-react";
 
+// Sample data
 const samplePhotos = [
   {
     id: 1,
     eventName: "Tech Expo 2025",
-    imageUrl: "/tech-expo-event-photography.jpg",
+    imageUrl: "/thumbnail.png",
     uploadedAt: "2025-07-05T10:00:00Z",
-    status: "Published",
-  },
-  {
-    id: 4,
-    eventName: "Tech Expo 2025",
-    imageUrl: "/tech-expo-booth.jpg",
-    uploadedAt: "2025-07-05T11:30:00Z",
-    status: "Published",
-  },
-  {
-    id: 5,
-    eventName: "Tech Expo 2025",
-    imageUrl: "/tech-expo-keynote.jpg",
-    uploadedAt: "2025-07-05T14:15:00Z",
     status: "Published",
   },
   {
     id: 2,
     eventName: "Food Carnival",
-    imageUrl: "/food-carnival-event-photography.jpg",
+    imageUrl: "/thumbnail.png",
     uploadedAt: "2025-06-28T15:30:00Z",
-    status: "Pending",
-  },
-  {
-    id: 6,
-    eventName: "Food Carnival",
-    imageUrl: "/food-stall-carnival.jpg",
-    uploadedAt: "2025-06-28T16:45:00Z",
     status: "Pending",
   },
   {
     id: 3,
     eventName: "Music Fest",
-    imageUrl: "/music-festival-concert-photography.jpg",
+    imageUrl: "/thumbnail.png",
     uploadedAt: "2025-07-01T13:20:00Z",
-    status: "Published",
-  },
-  {
-    id: 7,
-    eventName: "Music Fest",
-    imageUrl: "/music-festival-crowd.jpg",
-    uploadedAt: "2025-07-01T18:00:00Z",
-    status: "Published",
-  },
-  {
-    id: 8,
-    eventName: "Music Fest",
-    imageUrl: "/music-festival-stage-lights.jpg",
-    uploadedAt: "2025-07-01T20:30:00Z",
     status: "Published",
   },
 ];
 
-type Photo = (typeof samplePhotos)[0];
 type FilterType = "all" | "recent" | "pending" | "published";
 type SortType = "newest" | "oldest" | "a-z";
 
@@ -89,9 +47,9 @@ export default function CreatorContentsPage() {
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [sortType, setSortType] = useState<SortType>("newest");
   const [selectedPhotos, setSelectedPhotos] = useState<Set<number>>(new Set());
-  const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
-  const groupedPhotos = useMemo(() => {
+  // Filter and sort logic
+  const filteredAndSortedPhotos = useMemo(() => {
     let filtered = [...samplePhotos];
 
     // Apply search filter
@@ -129,16 +87,7 @@ export default function CreatorContentsPage() {
       filtered.sort((a, b) => a.eventName.localeCompare(b.eventName));
     }
 
-    // Group by event name
-    const grouped = filtered.reduce((acc, photo) => {
-      if (!acc[photo.eventName]) {
-        acc[photo.eventName] = [];
-      }
-      acc[photo.eventName].push(photo);
-      return acc;
-    }, {} as Record<string, Photo[]>);
-
-    return grouped;
+    return filtered;
   }, [searchQuery, filterType, sortType]);
 
   const formatDate = (dateString: string) => {
@@ -160,24 +109,12 @@ export default function CreatorContentsPage() {
     setSelectedPhotos(newSelected);
   };
 
-  const allPhotos = Object.values(groupedPhotos).flat();
-
   const toggleSelectAll = () => {
-    if (selectedPhotos.size === allPhotos.length) {
+    if (selectedPhotos.size === filteredAndSortedPhotos.length) {
       setSelectedPhotos(new Set());
     } else {
-      setSelectedPhotos(new Set(allPhotos.map((p) => p.id)));
+      setSelectedPhotos(new Set(filteredAndSortedPhotos.map((p) => p.id)));
     }
-  };
-
-  const toggleEventExpanded = (eventName: string) => {
-    const newExpanded = new Set(expandedEvents);
-    if (newExpanded.has(eventName)) {
-      newExpanded.delete(eventName);
-    } else {
-      newExpanded.add(eventName);
-    }
-    setExpandedEvents(newExpanded);
   };
 
   const handleBulkDelete = () => {
@@ -195,8 +132,7 @@ export default function CreatorContentsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header variant="solid" textVariant="dark" />
-      <div className="mx-auto max-w-7xl mt-10 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Content Manager</h1>
@@ -257,7 +193,7 @@ export default function CreatorContentsPage() {
           <div className="bg-muted mb-6 flex flex-wrap items-center justify-between gap-4 rounded-lg border p-4">
             <div className="flex items-center gap-4">
               <Checkbox
-                checked={selectedPhotos.size === allPhotos.length}
+                checked={selectedPhotos.size === filteredAndSortedPhotos.length}
                 onCheckedChange={toggleSelectAll}
               />
               <span className="text-sm font-medium">
@@ -281,97 +217,54 @@ export default function CreatorContentsPage() {
           </div>
         )}
 
-        {Object.keys(groupedPhotos).length > 0 ? (
-          <div className="space-y-8">
-            {Object.entries(groupedPhotos).map(([eventName, photos]) => {
-              const isExpanded = expandedEvents.has(eventName);
-              const displayedPhotos = isExpanded ? photos : photos.slice(0, 6);
+        {/* Photo Grid */}
+        {filteredAndSortedPhotos.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredAndSortedPhotos.map((photo) => (
+              <Card
+                key={photo.id}
+                className="group relative overflow-hidden transition-all hover:shadow-lg"
+              >
+                {/* Checkbox */}
+                <div className="absolute top-4 left-4 z-10">
+                  <Checkbox
+                    checked={selectedPhotos.has(photo.id)}
+                    onCheckedChange={() => togglePhotoSelection(photo.id)}
+                    className="bg-background/80 backdrop-blur-sm"
+                  />
+                </div>
 
-              return (
-                <div key={eventName} className="space-y-3">
-                  {/* Event Header */}
+                {/* Image */}
+                <div className="aspect-[4/3] overflow-hidden">
+                  <img
+                    src={photo.imageUrl || "/placeholder.svg"}
+                    alt={photo.eventName}
+                    className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+
+                {/* Content */}
+                <div className="p-4">
+                  <h3 className="mb-2 font-semibold text-lg">
+                    {photo.eventName}
+                  </h3>
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-semibold">{eventName}</h2>
-                      <p className="text-muted-foreground text-xs">
-                        {photos.length} photos
-                      </p>
-                    </div>
-                    {photos.length > 6 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleEventExpanded(eventName)}
-                        className="gap-2"
-                      >
-                        {isExpanded ? (
-                          <>
-                            Show Less
-                            <ChevronUp className="size-4" />
-                          </>
-                        ) : (
-                          <>
-                            Show More
-                            <ChevronDown className="size-4" />
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Photo Grid */}
-                  <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
-                    {displayedPhotos.map((photo) => (
-                      <div
-                        key={photo.id}
-                        className="group relative aspect-square cursor-pointer overflow-hidden rounded-sm"
-                        onClick={() => togglePhotoSelection(photo.id)}
-                      >
-                        {/* Image */}
-                        <img
-                          src={photo.imageUrl || "/placeholder.svg"}
-                          alt={photo.eventName}
-                          className="size-full object-cover transition-opacity duration-200 group-hover:opacity-90"
-                        />
-
-                        {/* Checkbox Overlay */}
-                        <div
-                          className={`absolute inset-0 transition-colors ${
-                            selectedPhotos.has(photo.id)
-                              ? "bg-blue-500/30"
-                              : "bg-transparent"
-                          }`}
-                        >
-                          <div className="absolute top-1.5 right-1.5">
-                            <Checkbox
-                              checked={selectedPhotos.has(photo.id)}
-                              onCheckedChange={() =>
-                                togglePhotoSelection(photo.id)
-                              }
-                              className={`size-5 border-2 transition-all ${
-                                selectedPhotos.has(photo.id)
-                                  ? "bg-blue-500 border-blue-500"
-                                  : "bg-white/80 border-white backdrop-blur-sm"
-                              }`}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Status Badge */}
-                        {photo.status === "Pending" && (
-                          <div className="absolute bottom-1 left-1">
-                            <span className="bg-yellow-500 rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white">
-                              Pending
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    <p className="text-muted-foreground text-sm">
+                      {formatDate(photo.uploadedAt)}
+                    </p>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        photo.status === "Published"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                      }`}
+                    >
+                      {photo.status}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
+              </Card>
+            ))}
           </div>
         ) : (
           <div className="flex min-h-[400px] items-center justify-center rounded-lg border-2 border-dashed">
