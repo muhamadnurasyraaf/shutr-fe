@@ -98,13 +98,13 @@ export function Header({ variant = "solid", textVariant = "light" }: HeaderProps
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-gray-200" />
                   <DropdownMenuItem asChild className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer">
-                    <Link href="/profile" className="flex items-center gap-2">
+                    <Link href="/creator" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
                       <span>Profile</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer">
-                    <Link href="/self-contents" className="flex items-center gap-2">
+                    <Link href="/creator/my-content" className="flex items-center gap-2">
                       <Camera className="h-4 w-4" />
                       <span>My Content</span>
                     </Link>

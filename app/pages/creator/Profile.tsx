@@ -1,8 +1,7 @@
 "use client"
 import { useState } from "react"
 import { Check, User, Briefcase, CreditCard, Edit2 } from "lucide-react"
-import { Header } from "../components/Header"
-
+import { Header } from "@/app/components/Header"
 interface ProfilePageProps {
   user: {
     id?: string;
@@ -11,6 +10,7 @@ interface ProfilePageProps {
     image?: string | null;
     displayName?: string | null;
     phoneNumber?: string | null;
+    creatorInfo?:string|null;
   }
 }
 
@@ -285,7 +285,7 @@ export default function PhotographerProfile({user }: ProfilePageProps) {
                           <input
                             type="text"
                             required
-                            value={personalInfo.fullName}
+                            value={personalInfo.fullName || ""}
                             onChange={(e) => handlePersonalChange("fullName", e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                           />
@@ -298,7 +298,7 @@ export default function PhotographerProfile({user }: ProfilePageProps) {
                           <input
                             type="text"
                             required
-                            value={personalInfo.displayName}
+                            value={personalInfo.displayName || ""}
                             onChange={(e) => handlePersonalChange("displayName", e.target.value)}
                             placeholder="How others will see you"
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
@@ -311,7 +311,7 @@ export default function PhotographerProfile({user }: ProfilePageProps) {
                           <input
                             type="tel"
                             required
-                            value={personalInfo.phone}
+                            value={personalInfo.phone || ""}
                             onChange={(e) => handlePersonalChange("phone", e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                           />
@@ -324,7 +324,7 @@ export default function PhotographerProfile({user }: ProfilePageProps) {
                           <input
                             type="email"
                             required
-                            value={personalInfo.email}
+                            value={personalInfo.email || ""}
                             onChange={(e) => handlePersonalChange("email", e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                           />

@@ -11,6 +11,7 @@ declare module "next-auth" {
       image?: string;
       displayName?: string;
       phoneNumber?: string;
+      type: "Creator" | "Customer";
     } & DefaultSession["user"];
   }
 }
@@ -21,6 +22,7 @@ declare module "next-auth/jwt" {
     userId?: string;
     displayName?: string;
     phoneNumber?: string;
+    type: "Creator" | "Customer";
   }
 }
 
@@ -44,10 +46,7 @@ export const authOptions: NextAuthOptions = {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                email: user.email,
-                name: user.name,
-                image: user.image,
-                googleId: account.providerAccountId,
+                idToken: account.id_token,
               }),
             }
           );
@@ -61,6 +60,7 @@ export const authOptions: NextAuthOptions = {
             token.userId = data.user.id;
             token.displayName = data.user.displayName;
             token.phoneNumber = data.user.phoneNumber;
+            token.type = data.user.type;
 
             console.log("Token after update:", token);
           }
@@ -80,6 +80,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.userId;
         session.user.displayName = token.displayName;
         session.user.phoneNumber = token.phoneNumber;
+        session.user.type = token.type;
       }
 
       console.log("Session callback - final session:", session);

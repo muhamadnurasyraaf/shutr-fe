@@ -1,5 +1,4 @@
-import { Header } from "../components/Header";
-
+import { Header } from "@/app/components/Header"
 export default function SelfContentsPage() {
   return (
     <div className="min-h-screen bg-gray-100">
