@@ -5,6 +5,8 @@ import { Header } from "../components/Header";
 import { Search, MapPin, Calendar, Camera, Filter, X } from "lucide-react";
 import Image from "next/image";
 import { useClientAPI } from "@/lib/client-api";
+import { getCloudinaryUrl } from "@/lib/cloudinary";
+import { useRouter } from "next/navigation";
 
 interface GetEventsParams {
   page: number;
@@ -104,6 +106,8 @@ export default function SearchEventsPage() {
       setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
     }
   };
+
+  const router = useRouter();
 
   return (
     <>
@@ -257,13 +261,14 @@ export default function SearchEventsPage() {
 
 function EventCard({ event }: { event: EventData }) {
   const eventDate = new Date(event.date);
+  const router = useRouter();
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all cursor-pointer">
       <div className="relative h-48 bg-gray-100">
         {event.thumbnailUrl ? (
           <Image
-            src={event.thumbnailUrl}
+            src={getCloudinaryUrl(event.thumbnailUrl, "standard")}
             alt={event.name}
             fill
             className="object-cover"
@@ -308,7 +313,10 @@ function EventCard({ event }: { event: EventData }) {
             <Camera className="h-4 w-4" />
             <span>{event._count.images} photos</span>
           </div>
-          <button className="px-4 py-2 bg-cyan-400 text-black text-sm font-semibold rounded-lg hover:bg-cyan-500 transition-colors">
+          <button
+            onClick={() => router.push(`/events/${event.id}/images`)}
+            className="px-4 py-2 bg-cyan-400 text-black text-sm font-semibold rounded-lg hover:bg-cyan-500 transition-colors"
+          >
             View Photos
           </button>
         </div>
