@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, type DragEvent } from "react";
+import { useState, useRef, useEffect, type DragEvent } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -20,17 +21,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Upload, X, Plus, AlertTriangle } from "lucide-react";
+import { Upload, X, Plus, AlertTriangle, Loader2 } from "lucide-react";
 import { Header } from "@/app/components/Header";
-
-// Sample event data
-const sampleEvents = [
-  { id: 1, name: "Tech Expo 2025", date: "2025-07-05", location: "KLCC" },
-  { id: 2, name: "Food Carnival", date: "2025-06-28", location: "Sunway City" },
-  { id: 3, name: "Music Fest", date: "2025-07-01", location: "Bukit Jalil" },
-];
-
-type Event = (typeof sampleEvents)[0];
+import {
+  getEventsList,
+  createEvent,
+  type EventListItem,
+} from "@/app/api/actions/event";
+import { uploadContent } from "@/app/api/actions/creator";
 
 interface UploadedImage {
   id: string;
@@ -41,7 +39,10 @@ interface UploadedImage {
 }
 
 export default function UploadContentPage() {
-  const [events] = useState<Event[]>(sampleEvents);
+  const { data: session, status } = useSession();
+  const [events, setEvents] = useState<EventListItem[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [hasFetchedEvents, setHasFetchedEvents] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [images, setImages] = useState<UploadedImage[]>([]);
@@ -49,6 +50,9 @@ export default function UploadContentPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [duplicateEventName, setDuplicateEventName] = useState("");
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [newEvent, setNewEvent] = useState({
     name: "",
     date: "",
@@ -56,6 +60,26 @@ export default function UploadContentPage() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch all events when component mounts
+  useEffect(() => {
+    async function fetchEvents() {
+      if (hasFetchedEvents) return;
+
+      setIsLoadingEvents(true);
+      try {
+        const data = await getEventsList();
+        setEvents(data);
+        setHasFetchedEvents(true);
+      } catch (error) {
+        console.error("Failed to fetch events:", error);
+      } finally {
+        setIsLoadingEvents(false);
+      }
+    }
+
+    fetchEvents();
+  }, [hasFetchedEvents]);
 
   // Calculate similarity percentage (simple Levenshtein-based approach)
   const calculateSimilarity = (str1: string, str2: string): number => {
@@ -67,7 +91,7 @@ export default function UploadContentPage() {
     const editDistance = (s1: string, s2: string): number => {
       s1 = s1.toLowerCase();
       s2 = s2.toLowerCase();
-      const costs = [];
+      const costs: number[] = [];
 
       for (let i = 0; i <= s1.length; i++) {
         let lastValue = i;
@@ -169,40 +193,95 @@ export default function UploadContentPage() {
   // Update image metadata
   const updateImage = (id: string, field: "caption" | "tag", value: string) => {
     setImages((prev) =>
-      prev.map((img) => (img.id === id ? { ...img, [field]: value } : img))
+      prev.map((img) => (img.id === id ? { ...img, [field]: value } : img)),
     );
   };
 
   // Create new event
-  const handleCreateEvent = () => {
+  const handleCreateEvent = async () => {
     if (!newEvent.name || !newEvent.date || !newEvent.location) return;
+    if (!session?.user?.id) return;
 
-    console.log("Creating new event:", newEvent);
-    setIsModalOpen(false);
-    setNewEvent({ name: "", date: "", location: "" });
-    setShowDuplicateWarning(false);
+    setIsCreatingEvent(true);
+    try {
+      const created = await createEvent({
+        name: newEvent.name,
+        date: newEvent.date,
+        location: newEvent.location,
+        createdBy: session.user.id,
+      });
+
+      // Add the new event to the list and select it
+      setEvents((prev) => [
+        {
+          id: created.id,
+          name: created.name,
+          date: created.date,
+          location: created.location,
+          imageCount: 0,
+        },
+        ...prev,
+      ]);
+      setSelectedEventId(created.id);
+      setIsModalOpen(false);
+      setNewEvent({ name: "", date: "", location: "" });
+      setShowDuplicateWarning(false);
+    } catch (error) {
+      console.error("Failed to create event:", error);
+    } finally {
+      setIsCreatingEvent(false);
+    }
   };
 
   // Submit upload
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedEventId || images.length === 0) return;
+    if (!session?.user?.id) return;
 
-    console.log({
-      eventId: selectedEventId,
-      images: images.map((img) => ({
-        file: img.file.name,
-        caption: img.caption,
-        tag: img.tag,
-      })),
-    });
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+        const formData = new FormData();
+        formData.append("file", image.file);
+        formData.append("creatorId", session.user.id);
+        formData.append("eventId", selectedEventId);
+        if (image.caption) {
+          formData.append("description", image.caption);
+        }
+
+        await uploadContent(formData);
+        setUploadProgress(Math.round(((i + 1) / images.length) * 100));
+      }
+
+      // Clear images after successful upload
+      images.forEach((img) => URL.revokeObjectURL(img.preview));
+      setImages([]);
+      setSelectedEventId("");
+    } catch (error) {
+      console.error("Failed to upload images:", error);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   // Filter events based on search
   const filteredEvents = events.filter((event) =>
-    event.name.toLowerCase().includes(searchQuery.toLowerCase())
+    event.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const canSubmit = selectedEventId && images.length > 0;
+  const canSubmit = selectedEventId && images.length > 0 && !isUploading;
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-MY", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -239,21 +318,34 @@ export default function UploadContentPage() {
                   <Select
                     value={selectedEventId}
                     onValueChange={setSelectedEventId}
+                    disabled={isLoadingEvents}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Choose an event..." />
+                      <SelectValue
+                        placeholder={
+                          isLoadingEvents
+                            ? "Loading events..."
+                            : "Choose an event..."
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {filteredEvents.map((event) => (
-                        <SelectItem key={event.id} value={event.id.toString()}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{event.name}</span>
-                            <span className="text-muted-foreground text-xs">
-                              {event.date} • {event.location}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {filteredEvents.length === 0 ? (
+                        <div className="text-muted-foreground px-2 py-4 text-center text-sm">
+                          No events found. Create one to get started.
+                        </div>
+                      ) : (
+                        filteredEvents.map((event) => (
+                          <SelectItem key={event.id} value={event.id}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{event.name}</span>
+                              <span className="text-muted-foreground text-xs">
+                                {formatDate(event.date)} - {event.location}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -386,6 +478,24 @@ export default function UploadContentPage() {
           </div>
         )}
 
+        {/* Upload Progress */}
+        {isUploading && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Uploading...</span>
+              <span className="text-sm text-muted-foreground">
+                {uploadProgress}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-cyan-400 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Submit Button */}
         <div className="flex justify-center">
           <Button
@@ -394,7 +504,14 @@ export default function UploadContentPage() {
             size="lg"
             className="min-w-[200px]"
           >
-            Upload {images.length > 0 && `(${images.length})`}
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>Upload {images.length > 0 && `(${images.length})`}</>
+            )}
           </Button>
         </div>
       </div>
@@ -480,9 +597,21 @@ export default function UploadContentPage() {
             </Button>
             <Button
               onClick={handleCreateEvent}
-              disabled={!newEvent.name || !newEvent.date || !newEvent.location}
+              disabled={
+                !newEvent.name ||
+                !newEvent.date ||
+                !newEvent.location ||
+                isCreatingEvent
+              }
             >
-              Create Event
+              {isCreatingEvent ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Event"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

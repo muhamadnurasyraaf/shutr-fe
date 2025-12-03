@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useState } from "react";
 import { Header } from "../components/Header";
 import { Star, Calendar, Camera, Calendar1, MapPin } from "lucide-react";
+import { getCloudinaryUrl } from "@/lib/cloudinary";
+import { redirect, useRouter } from "next/navigation";
 
 interface LandingPageProps {
   recentEvents: {
@@ -30,7 +32,20 @@ export default function LandingPage({
   recentEvents,
   topPhotographers,
 }: LandingPageProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      router.push(`/explore?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
   // Testimonials data
   const testimonials = [
     {
@@ -94,9 +109,13 @@ export default function LandingPage({
                   placeholder="Enter Event Name / Photographer Profile"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   className="flex-1 px-6 py-3 rounded text-sm bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400"
                 />
-                <button className="px-6 py-3 bg-cyan-400 text-black font-semibold rounded hover:bg-cyan-300 transition-colors">
+                <button
+                  onClick={handleSearch}
+                  className="px-6 py-3 bg-cyan-400 text-black font-semibold rounded hover:bg-cyan-300 transition-colors"
+                >
                   🔍
                 </button>
               </div>
@@ -184,12 +203,18 @@ export default function LandingPage({
                 >
                   {/* Event Image */}
                   <div className="relative w-full h-48">
-                    <Image
-                      src={event.thumbnailUrl ?? "/shutr_placeholder.jpg"}
-                      alt={event.name || "Event image"}
-                      fill
-                      className="object-cover"
-                    />
+                    {event.thumbnailUrl ? (
+                      <Image
+                        src={getCloudinaryUrl(event.thumbnailUrl, "standard")}
+                        alt={event.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-100 to-blue-100">
+                        <Camera className="w-16 h-16 text-gray-400" />
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-4">
@@ -214,7 +239,10 @@ export default function LandingPage({
                       </p>
                     </div>
 
-                    <button className="w-full px-4 py-2 bg-cyan-400 text-black font-semibold rounded hover:bg-cyan-500 transition-colors">
+                    <button
+                      onClick={() => redirect(`/events/${event.id}/images`)}
+                      className="w-full px-4 py-2 bg-cyan-400 text-black font-semibold rounded hover:bg-cyan-500 transition-colors"
+                    >
                       View Photos
                     </button>
                   </div>

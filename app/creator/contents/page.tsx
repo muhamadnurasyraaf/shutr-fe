@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,128 +19,122 @@ import {
   FolderOpen,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from "lucide-react";
 import { Header } from "@/app/components/Header";
+import { useRouter } from "next/navigation";
+import {
+  fetchCreatorContents,
+  type EventGroup,
+  type ContentImage,
+} from "@/app/api/actions/creator";
+import { getEventsList, type EventListItem } from "@/app/api/actions/event";
 
-const samplePhotos = [
-  {
-    id: 1,
-    eventName: "Tech Expo 2025",
-    imageUrl: "/tech-expo-event-photography.jpg",
-    uploadedAt: "2025-07-05T10:00:00Z",
-    status: "Published",
-  },
-  {
-    id: 4,
-    eventName: "Tech Expo 2025",
-    imageUrl: "/tech-expo-booth.jpg",
-    uploadedAt: "2025-07-05T11:30:00Z",
-    status: "Published",
-  },
-  {
-    id: 5,
-    eventName: "Tech Expo 2025",
-    imageUrl: "/tech-expo-keynote.jpg",
-    uploadedAt: "2025-07-05T14:15:00Z",
-    status: "Published",
-  },
-  {
-    id: 2,
-    eventName: "Food Carnival",
-    imageUrl: "/food-carnival-event-photography.jpg",
-    uploadedAt: "2025-06-28T15:30:00Z",
-    status: "Pending",
-  },
-  {
-    id: 6,
-    eventName: "Food Carnival",
-    imageUrl: "/food-stall-carnival.jpg",
-    uploadedAt: "2025-06-28T16:45:00Z",
-    status: "Pending",
-  },
-  {
-    id: 3,
-    eventName: "Music Fest",
-    imageUrl: "/music-festival-concert-photography.jpg",
-    uploadedAt: "2025-07-01T13:20:00Z",
-    status: "Published",
-  },
-  {
-    id: 7,
-    eventName: "Music Fest",
-    imageUrl: "/music-festival-crowd.jpg",
-    uploadedAt: "2025-07-01T18:00:00Z",
-    status: "Published",
-  },
-  {
-    id: 8,
-    eventName: "Music Fest",
-    imageUrl: "/music-festival-stage-lights.jpg",
-    uploadedAt: "2025-07-01T20:30:00Z",
-    status: "Published",
-  },
-];
-
-type Photo = (typeof samplePhotos)[0];
-type FilterType = "all" | "recent" | "pending" | "published";
+type FilterType = "all" | "recent";
 type SortType = "newest" | "oldest" | "a-z";
 
 export default function CreatorContentsPage() {
+  const { data: session, status } = useSession();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [sortType, setSortType] = useState<SortType>("newest");
-  const [selectedPhotos, setSelectedPhotos] = useState<Set<number>>(new Set());
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
+  const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
+  const router = useRouter();
 
-  const groupedPhotos = useMemo(() => {
-    let filtered = [...samplePhotos];
+  // Data states
+  const [eventGroups, setEventGroups] = useState<EventGroup[]>([]);
+  const [events, setEvents] = useState<EventListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalImages, setTotalImages] = useState(0);
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      filtered = filtered.filter((photo) =>
-        photo.eventName.toLowerCase().includes(searchQuery.toLowerCase())
+  // Fetch data on mount
+  useEffect(() => {
+    async function fetchData() {
+      if (status !== "authenticated" || !session?.user?.id) return;
+
+      setIsLoading(true);
+      try {
+        const [contentsData, eventsData] = await Promise.all([
+          fetchCreatorContents(session.user.id),
+          getEventsList(),
+        ]);
+        setEventGroups(contentsData.eventGroups);
+        setTotalImages(contentsData.totalImages);
+        setEvents(eventsData);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [status, session?.user?.id]);
+
+  // Filter and sort the event groups
+  const filteredGroups = useMemo(() => {
+    let groups = [...eventGroups];
+
+    // Filter by selected event
+    if (selectedEventFilter !== "all") {
+      groups = groups.filter(
+        (group) =>
+          group.event?.id === selectedEventFilter ||
+          (selectedEventFilter === "uncategorized" && !group.event),
       );
     }
 
-    // Apply status filter
-    if (filterType === "pending") {
-      filtered = filtered.filter((photo) => photo.status === "Pending");
-    } else if (filterType === "published") {
-      filtered = filtered.filter((photo) => photo.status === "Published");
-    } else if (filterType === "recent") {
+    // Apply search filter (search by event name)
+    if (searchQuery.trim()) {
+      groups = groups.filter((group) =>
+        group.event?.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
+    }
+
+    // Filter images within groups based on filter type
+    if (filterType === "recent") {
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      filtered = filtered.filter(
-        (photo) => new Date(photo.uploadedAt) > sevenDaysAgo
-      );
+
+      groups = groups
+        .map((group) => ({
+          ...group,
+          images: group.images.filter(
+            (img) => new Date(img.createdAt) > sevenDaysAgo,
+          ),
+        }))
+        .filter((group) => group.images.length > 0);
     }
 
-    // Apply sorting
+    // Sort groups
     if (sortType === "newest") {
-      filtered.sort(
-        (a, b) =>
-          new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
-      );
+      groups.sort((a, b) => {
+        if (!a.event) return 1;
+        if (!b.event) return -1;
+        return (
+          new Date(b.event.date).getTime() - new Date(a.event.date).getTime()
+        );
+      });
     } else if (sortType === "oldest") {
-      filtered.sort(
-        (a, b) =>
-          new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime()
-      );
+      groups.sort((a, b) => {
+        if (!a.event) return 1;
+        if (!b.event) return -1;
+        return (
+          new Date(a.event.date).getTime() - new Date(b.event.date).getTime()
+        );
+      });
     } else if (sortType === "a-z") {
-      filtered.sort((a, b) => a.eventName.localeCompare(b.eventName));
+      groups.sort((a, b) => {
+        const nameA = a.event?.name || "Uncategorized";
+        const nameB = b.event?.name || "Uncategorized";
+        return nameA.localeCompare(nameB);
+      });
     }
 
-    // Group by event name
-    const grouped = filtered.reduce((acc, photo) => {
-      if (!acc[photo.eventName]) {
-        acc[photo.eventName] = [];
-      }
-      acc[photo.eventName].push(photo);
-      return acc;
-    }, {} as Record<string, Photo[]>);
-
-    return grouped;
-  }, [searchQuery, filterType, sortType]);
+    return groups;
+  }, [eventGroups, searchQuery, filterType, sortType, selectedEventFilter]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -150,7 +145,7 @@ export default function CreatorContentsPage() {
     });
   };
 
-  const togglePhotoSelection = (id: number) => {
+  const togglePhotoSelection = (id: string) => {
     const newSelected = new Set(selectedPhotos);
     if (newSelected.has(id)) {
       newSelected.delete(id);
@@ -160,7 +155,7 @@ export default function CreatorContentsPage() {
     setSelectedPhotos(newSelected);
   };
 
-  const allPhotos = Object.values(groupedPhotos).flat();
+  const allPhotos = filteredGroups.flatMap((group) => group.images);
 
   const toggleSelectAll = () => {
     if (selectedPhotos.size === allPhotos.length) {
@@ -170,12 +165,12 @@ export default function CreatorContentsPage() {
     }
   };
 
-  const toggleEventExpanded = (eventName: string) => {
+  const toggleEventExpanded = (eventId: string) => {
     const newExpanded = new Set(expandedEvents);
-    if (newExpanded.has(eventName)) {
-      newExpanded.delete(eventName);
+    if (newExpanded.has(eventId)) {
+      newExpanded.delete(eventId);
     } else {
-      newExpanded.add(eventName);
+      newExpanded.add(eventId);
     }
     setExpandedEvents(newExpanded);
   };
@@ -193,16 +188,36 @@ export default function CreatorContentsPage() {
     console.log("Moving photos:", Array.from(selectedPhotos));
   };
 
+  if (status === "loading" || isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header variant="solid" textVariant="dark" />
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header variant="solid" textVariant="dark" />
       <div className="mx-auto max-w-7xl mt-10 px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Content Manager</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your event photos and content
-          </p>
+        <div className="mb-8 flex justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Content Manager
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your event photos and content ({totalImages} total photos)
+            </p>
+          </div>
+          <div>
+            <Button onClick={() => router.push("/creator/upload")}>
+              Upload New Content
+            </Button>
+          </div>
         </div>
 
         {/* Filter Bar */}
@@ -221,6 +236,25 @@ export default function CreatorContentsPage() {
 
           {/* Filters and Sort */}
           <div className="flex flex-wrap items-center gap-3">
+            {/* Event Filter */}
+            <Select
+              value={selectedEventFilter}
+              onValueChange={setSelectedEventFilter}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filter by event" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Events</SelectItem>
+                {events.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value="uncategorized">Uncategorized</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Select
               value={filterType}
               onValueChange={(value) => setFilterType(value as FilterType)}
@@ -229,10 +263,8 @@ export default function CreatorContentsPage() {
                 <SelectValue placeholder="Filter" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Events</SelectItem>
+                <SelectItem value="all">All Photos</SelectItem>
                 <SelectItem value="recent">Recently Added</SelectItem>
-                <SelectItem value="pending">Pending Review</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
               </SelectContent>
             </Select>
 
@@ -246,7 +278,7 @@ export default function CreatorContentsPage() {
               <SelectContent>
                 <SelectItem value="newest">Newest</SelectItem>
                 <SelectItem value="oldest">Oldest</SelectItem>
-                <SelectItem value="a-z">A → Z</SelectItem>
+                <SelectItem value="a-z">A - Z</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -281,27 +313,32 @@ export default function CreatorContentsPage() {
           </div>
         )}
 
-        {Object.keys(groupedPhotos).length > 0 ? (
+        {filteredGroups.length > 0 ? (
           <div className="space-y-8">
-            {Object.entries(groupedPhotos).map(([eventName, photos]) => {
-              const isExpanded = expandedEvents.has(eventName);
-              const displayedPhotos = isExpanded ? photos : photos.slice(0, 6);
+            {filteredGroups.map((group) => {
+              const eventId = group.event?.id || "uncategorized";
+              const eventName = group.event?.name || "Uncategorized";
+              const isExpanded = expandedEvents.has(eventId);
+              const displayedPhotos = isExpanded
+                ? group.images
+                : group.images.slice(0, 6);
 
               return (
-                <div key={eventName} className="space-y-3">
+                <div key={eventId} className="space-y-3">
                   {/* Event Header */}
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-xl font-semibold">{eventName}</h2>
                       <p className="text-muted-foreground text-xs">
-                        {photos.length} photos
+                        {group.images.length} photos
+                        {group.event && ` - ${formatDate(group.event.date)}`}
                       </p>
                     </div>
-                    {photos.length > 6 && (
+                    {group.images.length > 6 && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toggleEventExpanded(eventName)}
+                        onClick={() => toggleEventExpanded(eventId)}
                         className="gap-2"
                       >
                         {isExpanded ? (
@@ -311,7 +348,7 @@ export default function CreatorContentsPage() {
                           </>
                         ) : (
                           <>
-                            Show More
+                            Show More ({group.images.length - 6} more)
                             <ChevronDown className="size-4" />
                           </>
                         )}
@@ -329,8 +366,8 @@ export default function CreatorContentsPage() {
                       >
                         {/* Image */}
                         <img
-                          src={photo.imageUrl || "/placeholder.svg"}
-                          alt={photo.eventName}
+                          src={photo.url || "/placeholder.svg"}
+                          alt={photo.description || "Photo"}
                           className="size-full object-cover transition-opacity duration-200 group-hover:opacity-90"
                         />
 
@@ -357,15 +394,6 @@ export default function CreatorContentsPage() {
                             />
                           </div>
                         </div>
-
-                        {/* Status Badge */}
-                        {photo.status === "Pending" && (
-                          <div className="absolute bottom-1 left-1">
-                            <span className="bg-yellow-500 rounded-full px-1.5 py-0.5 text-[10px] font-medium text-white">
-                              Pending
-                            </span>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -377,11 +405,23 @@ export default function CreatorContentsPage() {
           <div className="flex min-h-[400px] items-center justify-center rounded-lg border-2 border-dashed">
             <div className="text-center">
               <p className="text-muted-foreground text-lg">
-                No photos found matching your criteria
+                {totalImages === 0
+                  ? "No photos uploaded yet"
+                  : "No photos found matching your criteria"}
               </p>
               <p className="text-muted-foreground mt-2 text-sm">
-                Try adjusting your search or filters
+                {totalImages === 0
+                  ? "Upload your first photos to get started"
+                  : "Try adjusting your search or filters"}
               </p>
+              {totalImages === 0 && (
+                <Button
+                  className="mt-4"
+                  onClick={() => router.push("/creator/upload")}
+                >
+                  Upload Photos
+                </Button>
+              )}
             </div>
           </div>
         )}
