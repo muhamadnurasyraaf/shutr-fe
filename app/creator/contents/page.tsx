@@ -29,6 +29,7 @@ import {
   type ContentImage,
 } from "@/app/api/actions/creator";
 import { getEventsList, type EventListItem } from "@/app/api/actions/event";
+import { ImageDetailModal } from "./ImageDetailModal";
 
 type FilterType = "all" | "recent";
 type SortType = "newest" | "oldest" | "a-z";
@@ -48,6 +49,10 @@ export default function CreatorContentsPage() {
   const [events, setEvents] = useState<EventListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalImages, setTotalImages] = useState(0);
+
+  // Modal state
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch data on mount
   useEffect(() => {
@@ -186,6 +191,18 @@ export default function CreatorContentsPage() {
 
   const handleBulkMove = () => {
     console.log("Moving photos:", Array.from(selectedPhotos));
+  };
+
+  const handleImageClick = (imageId: string, e: React.MouseEvent) => {
+    // Don't open modal if clicking on checkbox
+    if ((e.target as HTMLElement).closest("[data-checkbox]")) return;
+    setSelectedImageId(imageId);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedImageId(null);
   };
 
   if (status === "loading" || isLoading) {
@@ -362,7 +379,7 @@ export default function CreatorContentsPage() {
                       <div
                         key={photo.id}
                         className="group relative aspect-square cursor-pointer overflow-hidden rounded-sm"
-                        onClick={() => togglePhotoSelection(photo.id)}
+                        onClick={(e) => handleImageClick(photo.id, e)}
                       >
                         {/* Image */}
                         <img
@@ -379,7 +396,10 @@ export default function CreatorContentsPage() {
                               : "bg-transparent"
                           }`}
                         >
-                          <div className="absolute top-1.5 right-1.5">
+                          <div
+                            className="absolute top-1.5 right-1.5"
+                            data-checkbox
+                          >
                             <Checkbox
                               checked={selectedPhotos.has(photo.id)}
                               onCheckedChange={() =>
@@ -426,6 +446,14 @@ export default function CreatorContentsPage() {
           </div>
         )}
       </div>
+
+      {/* Image Detail Modal */}
+      <ImageDetailModal
+        imageId={selectedImageId}
+        creatorId={session?.user?.id || ""}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 }

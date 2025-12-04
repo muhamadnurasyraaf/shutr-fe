@@ -19,10 +19,27 @@ export interface UploadedImage {
   id: string;
   url: string;
   description: string | null;
+  bibNumber: string | null;
+  plateNumber: string | null;
   creatorId: string;
   eventId: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UploadedVariant {
+  id: string;
+  imageId: string;
+  url: string | null;
+  name: string;
+  description: string | null;
+  price: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UploadedImageWithVariants extends UploadedImage {
+  variants: UploadedVariant[];
 }
 
 export async function uploadContent(
@@ -30,6 +47,24 @@ export async function uploadContent(
 ): Promise<UploadedImage> {
   const api = await getServerAPI();
   const response = await api.post("/creator/upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+}
+
+export interface VariantInput {
+  name: string;
+  description?: string;
+  price: number;
+}
+
+export async function uploadContentWithVariants(
+  formData: FormData,
+): Promise<UploadedImageWithVariants> {
+  const api = await getServerAPI();
+  const response = await api.post("/creator/upload-with-variants", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -158,5 +193,80 @@ export async function fetchPhotographerProfile(
     return response.data;
   } catch {
     return null;
+  }
+}
+
+// Image with variants types
+export interface ImageVariant {
+  id: string;
+  url: string | null;
+  name: string;
+  description: string | null;
+  price: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ImageWithVariants {
+  id: string;
+  url: string;
+  description: string | null;
+  bibNumber: string | null;
+  plateNumber: string | null;
+  creatorId: string;
+  eventId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  event: {
+    id: string;
+    name: string;
+    date: string;
+    location: string;
+  } | null;
+  variants: ImageVariant[];
+}
+
+export async function fetchImageWithVariants(
+  imageId: string,
+  creatorId: string,
+): Promise<ImageWithVariants | null> {
+  const api = await getServerAPI();
+  try {
+    const response = await api.get(`/creator/image/${imageId}`, {
+      params: { creatorId },
+    });
+    return response.data;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateVariant(
+  variantId: string,
+  creatorId: string,
+  data: { name?: string; description?: string; price?: number },
+): Promise<ImageVariant | null> {
+  const api = await getServerAPI();
+  try {
+    const response = await api.put(`/creator/variant/${variantId}`, {
+      creatorId,
+      ...data,
+    });
+    return response.data;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteVariant(
+  variantId: string,
+  creatorId: string,
+): Promise<boolean> {
+  const api = await getServerAPI();
+  try {
+    await api.post(`/creator/variant/${variantId}/delete`, { creatorId });
+    return true;
+  } catch {
+    return false;
   }
 }
