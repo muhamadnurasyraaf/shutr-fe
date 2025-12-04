@@ -73,3 +73,90 @@ export async function fetchCreatorContents(
   const response = await api.get("/creator/contents", { params });
   return response.data;
 }
+
+export type PhotographyType = "Marathon" | "Wildlife" | "Motorsports";
+
+export interface Photographer {
+  id: string;
+  name: string | null;
+  displayName: string | null;
+  avatar: string | null;
+  email: string;
+  photographyType: PhotographyType | null;
+  location: string | null;
+  bio: string | null;
+  eventsCount: number;
+  imagesCount: number;
+}
+
+export interface PhotographersResponse {
+  data: Photographer[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+export async function fetchPhotographers(
+  photographyType?: PhotographyType,
+  page: number = 1,
+  limit: number = 9,
+): Promise<PhotographersResponse> {
+  const api = await getServerAPI();
+  const params: Record<string, string | number> = { page, limit };
+  if (photographyType) {
+    params.photographyType = photographyType;
+  }
+  const response = await api.get("/creator/photographers", { params });
+  return response.data;
+}
+
+// Photographer public profile types
+export interface PhotographerProfile {
+  id: string;
+  name: string | null;
+  displayName: string | null;
+  avatar: string | null;
+  email: string;
+  photographyType: PhotographyType | null;
+  location: string | null;
+  bio: string | null;
+  eventsCount: number;
+  imagesCount: number;
+  memberSince: string;
+}
+
+export interface PhotographerEvent {
+  id: string;
+  name: string;
+  date: string;
+  location: string;
+  thumbnailUrl: string | null;
+  photoCount: number;
+}
+
+export interface PhotographerProfileResponse {
+  photographer: PhotographerProfile;
+  events: PhotographerEvent[];
+  totalImages: number;
+  eventGroups: EventGroup[];
+}
+
+export async function fetchPhotographerProfile(
+  photographerId: string,
+  eventId?: string,
+): Promise<PhotographerProfileResponse | null> {
+  const api = await getServerAPI();
+  const params: Record<string, string> = {};
+  if (eventId) {
+    params.eventId = eventId;
+  }
+  try {
+    const response = await api.get(`/creator/photographer/${photographerId}`, {
+      params,
+    });
+    return response.data;
+  } catch {
+    return null;
+  }
+}

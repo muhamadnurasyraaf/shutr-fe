@@ -85,7 +85,7 @@ export function Header({
               href="/top-photographers"
               className={`${textClass} ${hoverTextClass} transition-colors text-sm font-medium`}
             >
-              Top Photographers
+              Photographers
             </Link>
             <Link
               href="/help"
