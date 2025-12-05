@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Camera } from "lucide-react";
+import { User, LogOut, Camera, CameraOff, Heart } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
@@ -141,22 +141,33 @@ export function Header({
                       <span>Profile</span>
                     </Link>
                   </DropdownMenuItem>
+                  {userType === "Creator" && (
+                    <DropdownMenuItem
+                      asChild
+                      className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                    >
+                      <Link
+                        href="/creator/contents"
+                        className="flex items-center gap-2"
+                      >
+                        <Camera className="h-4 w-4" />
+                        <span>My Uploaded Contents</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     asChild
                     className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
                   >
                     <Link
-                      href={
-                        userType === "Creator"
-                          ? "/creator/contents"
-                          : "/customer/contents"
-                      }
+                      href="/customer/contents"
                       className="flex items-center gap-2"
                     >
-                      <Camera className="h-4 w-4" />
-                      <span>My Content</span>
+                      <Heart className="h-4 w-4" />
+                      <span>My Saved Contents</span>
                     </Link>
                   </DropdownMenuItem>
+
                   <DropdownMenuItem
                     onClick={() => signOut()}
                     className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"

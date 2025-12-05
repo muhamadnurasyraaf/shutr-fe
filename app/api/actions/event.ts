@@ -8,6 +8,14 @@ export async function getLandingPageData() {
   return response.data;
 }
 
+export interface ImageVariant {
+  id: string;
+  url: string;
+  name: string;
+  description: string | null;
+  price: number;
+}
+
 export interface EventImage {
   id: string;
   url: string;
@@ -19,6 +27,7 @@ export interface EventImage {
     displayName: string | null;
     image: string | null;
   };
+  variants: ImageVariant[];
 }
 
 export interface EventDetails {
