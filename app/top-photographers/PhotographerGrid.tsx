@@ -7,19 +7,31 @@ interface PhotographerGridProps {
   photographers: Photographer[];
   total: number;
   hasMore: boolean;
+  searchQuery?: string;
 }
 
 export function PhotographerGrid({
   photographers,
   total,
   hasMore,
+  searchQuery,
 }: PhotographerGridProps) {
   return (
     <section className="max-w-7xl mx-auto px-4 py-12">
       <div className="mb-6 flex items-center justify-between">
         <p className="text-gray-600">
-          Showing <span className="font-semibold">{photographers.length}</span>{" "}
-          of <span className="font-semibold">{total}</span> photographers
+          {searchQuery ? (
+            <>
+              Found <span className="font-semibold">{total}</span> photographers
+              matching "<span className="font-semibold">{searchQuery}</span>"
+            </>
+          ) : (
+            <>
+              Showing{" "}
+              <span className="font-semibold">{photographers.length}</span> of{" "}
+              <span className="font-semibold">{total}</span> photographers
+            </>
+          )}
         </p>
         <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-transparent">
           <option>Sort by: Top Rated</option>

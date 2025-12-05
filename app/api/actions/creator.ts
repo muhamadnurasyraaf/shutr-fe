@@ -146,6 +146,44 @@ export async function fetchPhotographers(
   return response.data;
 }
 
+// Search photographers using Typesense
+export interface SearchPhotographersResponse {
+  hits: Photographer[];
+  estimatedTotalHits: number;
+}
+
+export async function searchPhotographers(
+  query: string,
+  photographyType?: PhotographyType,
+  limit: number = 20,
+): Promise<SearchPhotographersResponse> {
+  const api = await getServerAPI();
+  const params: Record<string, string | number> = { q: query, limit };
+  if (photographyType) {
+    params.photographyType = photographyType;
+  }
+  const response = await api.get("/search/creators", { params });
+
+  // Map the response to match Photographer interface
+  const hits = (response.data.hits || []).map((hit: any) => ({
+    id: hit.id,
+    name: hit.name || null,
+    displayName: hit.displayName || null,
+    avatar: null, // Typesense doesn't store avatar
+    email: hit.email,
+    photographyType: hit.photographyType || null,
+    location: hit.location || null,
+    bio: hit.bio || null,
+    eventsCount: hit.eventsCount || 0,
+    imagesCount: hit.imagesCount || 0,
+  }));
+
+  return {
+    hits,
+    estimatedTotalHits: response.data.estimatedTotalHits || 0,
+  };
+}
+
 // Photographer public profile types
 export interface PhotographerProfile {
   id: string;

@@ -149,115 +149,102 @@ export default function ExplorePage() {
             <p className="text-gray-500">Searching...</p>
           </div>
         ) : (
-            <>
-              {/* Photographers Section */}
-              {results.photographers.length > 0 && (
-                <section className="mb-12">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                    Photographers
-                  </h2>
+          <>
+            {/* Photographers Section */}
+            {results.photographers.length > 0 && (
+              <section className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Photographers
+                </h2>
 
-                  <div className="grid grid-cols-3 gap-6">
-                    {results.photographers.map((photographer) => (
-                      <div
-                        key={photographer.id}
-                        className="flex flex-col items-center cursor-pointer"
-                        onClick={() =>
-                          router.push(`/creator/${photographer.id}`)
-                        }
-                      >
-                        <Avatar className="h-24 w-24 mb-3">
-                          <AvatarFallback className="bg-gray-200 text-gray-600">
-                            {(photographer.displayName || photographer.name)
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <h3 className="text-sm font-medium text-gray-900">
-                          {photographer.displayName || photographer.name}
-                        </h3>
-                        {photographer.creatorInfo?.location && (
-                          <p className="text-xs text-gray-500">
-                            {photographer.creatorInfo.location}
-                          </p>
+                <div className="grid grid-cols-3 gap-6">
+                  {results.photographers.map((photographer) => (
+                    <div
+                      key={photographer.id}
+                      className="flex flex-col items-center cursor-pointer"
+                      onClick={() => router.push(`/creator/${photographer.id}`)}
+                    >
+                      <Avatar className="h-24 w-24 mb-3">
+                        <AvatarFallback className="bg-gray-200 text-gray-600">
+                          {(photographer.displayName || photographer.name)
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <h3 className="text-sm font-medium text-gray-900">
+                        {photographer.displayName || photographer.name}
+                      </h3>
+                      {photographer.creatorInfo?.location && (
+                        <p className="text-xs text-gray-500">
+                          {photographer.creatorInfo.location}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Events Section */}
+            {results.events.length > 0 && (
+              <section>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Events
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {results.events.map((event) => (
+                    <Card
+                      key={event.id}
+                      className="overflow-hidden border border-gray-300 cursor-pointer hover:shadow-lg transition-all"
+                      onClick={() => router.push(`/events/${event.id}/images`)}
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                        {event.thumbnailUrl ? (
+                          <img
+                            src={getCloudinaryUrl(
+                              event.thumbnailUrl,
+                              "standard",
+                            )}
+                            alt={event.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-cyan-100 to-blue-100">
+                            <Camera className="w-12 h-12 text-gray-400" />
+                          </div>
                         )}
                       </div>
-                    ))}
-                  </div>
-                </section>
-              )}
 
-              {/* Events Section */}
-              {results.events.length > 0 && (
-                <section>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                    Events
-                  </h2>
+                      <CardContent className="p-4">
+                        <h3 className="text-base font-semibold text-gray-900 mb-3">
+                          {event.name}
+                        </h3>
+                        <Button
+                          size="sm"
+                          className="w-full bg-cyan-400 hover:bg-cyan-500 text-black font-medium"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/events/${event.id}/images`);
+                          }}
+                        >
+                          View Photos
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </section>
+            )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {results.events.map((event) => (
-                      <Card
-                        key={event.id}
-                        className="overflow-hidden border border-gray-300 cursor-pointer hover:shadow-lg transition-all"
-                        onClick={() =>
-                          router.push(`/events/${event.id}/images`)
-                        }
-                      >
-                        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-                          {event.thumbnailUrl ? (
-                            <img
-                              src={getCloudinaryUrl(
-                                event.thumbnailUrl,
-                                "standard",
-                              )}
-                              alt={event.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-cyan-100 to-blue-100">
-                              <Camera className="w-12 h-12 text-gray-400" />
-                            </div>
-                          )}
-                        </div>
-
-                        <CardContent className="p-4">
-                          <h3 className="text-base font-semibold text-gray-900 mb-3">
-                            {event.name}
-                          </h3>
-                          <Button
-                            size="sm"
-                            className="w-full bg-cyan-400 hover:bg-cyan-500 text-black font-medium"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/events/${event.id}/images`);
-                            }}
-                          >
-                            View Photos
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* No Results */}
-              {queryParam &&
-                results.events.length === 0 &&
-                results.photographers.length === 0 && (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500">
-                      No results found for "{queryParam}"
-                    </p>
-                  </div>
-                )}
-
-              {/* Initial State */}
-              {!queryParam && (
+            {/* No Results */}
+            {queryParam &&
+              results.events.length === 0 &&
+              results.photographers.length === 0 && (
                 <div className="text-center py-12">
                   <p className="text-gray-500">
-                    Enter a search term to find events and photographers
+                    No results found for "{queryParam}"
                   </p>
                 </div>
               )}

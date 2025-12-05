@@ -25,6 +25,7 @@ export function Header({
   textVariant = "light",
 }: HeaderProps) {
   const { data: session } = useSession();
+  const userType = session?.user?.type;
   const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter();
   useEffect(() => {
@@ -145,7 +146,11 @@ export function Header({
                     className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
                   >
                     <Link
-                      href="/creator/contents"
+                      href={
+                        userType === "Creator"
+                          ? "/creator/contents"
+                          : "/customer/contents"
+                      }
                       className="flex items-center gap-2"
                     >
                       <Camera className="h-4 w-4" />

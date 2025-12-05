@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Header } from "../components/Header";
 import { Search, MapPin, Calendar, Camera, Filter, X } from "lucide-react";
 import Image from "next/image";
@@ -8,91 +8,90 @@ import { useClientAPI } from "@/lib/client-api";
 import { getCloudinaryUrl } from "@/lib/cloudinary";
 import { useRouter } from "next/navigation";
 
-interface GetEventsParams {
-  page: number;
-  limit: number;
-  eventId?: string | null;
-  sortBy: "event" | "date" | "name";
-  sortDirection: "asc" | "desc";
-}
-
 interface EventData {
   id: string;
   name: string;
   description: string | null;
-  date: string;
-  thumbnailUrl: string | null;
+  date: string | number;
+  thumbnailUrl?: string | null;
   location: string;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-  _count: {
+  createdAt?: string | number;
+  updatedAt?: string;
+  createdBy?: string;
+  creatorId?: string;
+  imageCount?: number;
+  _count?: {
     images: number;
-  };
-}
-
-interface EventsResponse {
-  data: EventData[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
   };
 }
 
 export default function SearchEventsPage() {
   const api = useClientAPI();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [events, setEvents] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 12,
-    total: 0,
-    totalPages: 0,
-    hasNext: false,
-    hasPrev: false,
-  });
+  const [totalResults, setTotalResults] = useState(0);
 
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Load events when search query changes
   useEffect(() => {
     loadEvents();
-  }, [pagination.page]);
+  }, [debouncedQuery]);
 
   async function loadEvents() {
     try {
       setLoading(true);
-      const response = await api.get(
-        `/event?page=${pagination.page}&limit=${pagination.limit}&sortBy=date&sortDirection=desc`
-      );
 
-      console.log("Events response:", response.data);
-      setEvents(response.data.data);
-      setPagination(response.data.pagination);
+      if (debouncedQuery.trim()) {
+        // Use Typesense search endpoint
+        const response = await api.get(
+          `/search/events?q=${encodeURIComponent(debouncedQuery)}&limit=50`,
+        );
+        console.log("Search response:", response.data);
+        setEvents(response.data.hits || []);
+        setTotalResults(response.data.estimatedTotalHits || 0);
+      } else {
+        // Load all events when no search query
+        const response = await api.get(
+          `/event?page=1&limit=50&sortBy=date&sortDirection=desc`,
+        );
+        console.log("Events response:", response.data);
+        setEvents(response.data.data || []);
+        setTotalResults(response.data.pagination?.total || 0);
+      }
     } catch (error) {
       console.error("Failed to load events:", error);
+      setEvents([]);
     } finally {
       setLoading(false);
     }
   }
 
+  // Apply additional client-side filters (date, location) on top of search results
   const filteredEvents = events.filter((event) => {
-    const matchesSearch =
-      event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLocation =
       !selectedLocation ||
       event.location.toLowerCase().includes(selectedLocation.toLowerCase());
-    const matchesDate =
-      !selectedDate ||
-      new Date(event.date).toISOString().split("T")[0] === selectedDate;
 
-    return matchesSearch && matchesLocation && matchesDate;
+    const eventDate =
+      typeof event.date === "number"
+        ? new Date(event.date).toISOString().split("T")[0]
+        : new Date(event.date).toISOString().split("T")[0];
+    const matchesDate = !selectedDate || eventDate === selectedDate;
+
+    return matchesLocation && matchesDate;
   });
 
   const clearFilters = () => {
@@ -100,14 +99,6 @@ export default function SearchEventsPage() {
     setSelectedLocation("");
     setSearchQuery("");
   };
-
-  const loadMoreEvents = () => {
-    if (pagination.hasNext) {
-      setPagination((prev) => ({ ...prev, page: prev.page + 1 }));
-    }
-  };
-
-  const router = useRouter();
 
   return (
     <>
@@ -242,17 +233,6 @@ export default function SearchEventsPage() {
               </button>
             </div>
           )}
-
-          {!loading && filteredEvents.length > 0 && pagination.hasNext && (
-            <div className="mt-12 flex justify-center">
-              <button
-                onClick={loadMoreEvents}
-                className="px-8 py-3 border border-cyan-400 text-cyan-600 rounded-lg font-semibold hover:bg-cyan-50 transition-colors"
-              >
-                Load More Events
-              </button>
-            </div>
-          )}
         </section>
       </div>
     </>
@@ -260,8 +240,15 @@ export default function SearchEventsPage() {
 }
 
 function EventCard({ event }: { event: EventData }) {
-  const eventDate = new Date(event.date);
+  // Handle both timestamp (from Typesense) and ISO string (from DB)
+  const eventDate =
+    typeof event.date === "number"
+      ? new Date(event.date)
+      : new Date(event.date);
   const router = useRouter();
+
+  // Handle image count from both Typesense (imageCount) and DB (_count.images)
+  const imageCount = event.imageCount ?? event._count?.images ?? 0;
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all cursor-pointer">
@@ -311,7 +298,7 @@ function EventCard({ event }: { event: EventData }) {
         <div className="flex items-center justify-between pt-3 border-t border-gray-200">
           <div className="flex items-center gap-1.5 text-sm font-medium text-cyan-600">
             <Camera className="h-4 w-4" />
-            <span>{event._count.images} photos</span>
+            <span>{imageCount} photos</span>
           </div>
           <button
             onClick={() => router.push(`/events/${event.id}/images`)}
