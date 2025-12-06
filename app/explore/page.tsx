@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,25 @@ interface SearchResults {
 }
 
 export default function ExplorePage() {
+  return (
+    <Suspense fallback={<ExplorePageLoading />}>
+      <ExplorePageContent />
+    </Suspense>
+  );
+}
+
+function ExplorePageLoading() {
+  return (
+    <div className="min-h-screen bg-white">
+      <Header variant="solid" textVariant="dark" />
+      <div className="pt-20 flex items-center justify-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+function ExplorePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const api = useClientAPI();

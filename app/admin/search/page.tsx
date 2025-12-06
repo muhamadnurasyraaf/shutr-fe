@@ -278,14 +278,14 @@ export default function TypesenseAdminPage() {
                 />
               </div>
               <button
-                onClick={handleSearch}
+                onClick={() => handleSearch()}
                 disabled={searching}
                 className="px-6 py-3 bg-cyan-400 text-black font-semibold rounded-lg hover:bg-cyan-500 transition-colors disabled:opacity-50"
               >
                 {searching ? "Searching..." : "Search"}
               </button>
               <button
-                onClick={loadDocuments}
+                onClick={() => loadDocuments()}
                 disabled={searching}
                 className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
