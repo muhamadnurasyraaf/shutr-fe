@@ -50,6 +50,7 @@ export default function EventImagesClient({
   const [similarImages, setSimilarImages] = useState<SimilarImage[] | null>(
     null,
   );
+  const [searchMessage, setSearchMessage] = useState<string | null>(null);
   const [uploadedPreview, setUploadedPreview] = useState<string | null>(null);
 
   // Variant modal state
@@ -91,7 +92,7 @@ export default function EventImagesClient({
       e.stopPropagation();
     }
     setVariantModalImage(image);
-    setSelectedVariant(image.variants.length > 0 ? image.variants[0] : null);
+    setSelectedVariant(image.variants?.length > 0 ? image.variants[0] : null);
     document.body.style.overflow = "hidden";
   };
 
@@ -182,17 +183,17 @@ export default function EventImagesClient({
       const formData = new FormData();
       formData.append("image", file);
 
-      const response = await api.post<{ images: SimilarImage[] }>(
-        `/event/${event.id}/search-similar`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+      const response = await api.post<{
+        images: SimilarImage[];
+        message?: string;
+      }>(`/event/${event.id}/search-similar`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
         },
-      );
+      });
 
       setSimilarImages(response.data.images);
+      setSearchMessage(response.data.message || null);
     } catch (error) {
       console.error("Failed to search for similar images:", error);
       alert("Failed to search for similar images. Please try again.");
@@ -203,6 +204,7 @@ export default function EventImagesClient({
 
   const clearSearch = () => {
     setSimilarImages(null);
+    setSearchMessage(null);
     setUploadedPreview(null);
   };
 
@@ -332,9 +334,15 @@ export default function EventImagesClient({
                       />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-medium text-gray-900">
-                        Found {similarImages.length} similar photos
-                      </p>
+                      {searchMessage ? (
+                        <p className="text-sm font-medium text-amber-600">
+                          {searchMessage}
+                        </p>
+                      ) : (
+                        <p className="text-sm font-medium text-gray-900">
+                          Found {similarImages.length} similar photos
+                        </p>
+                      )}
                       <button
                         onClick={clearSearch}
                         className="text-sm text-cyan-600 hover:text-cyan-700"
@@ -424,7 +432,7 @@ export default function EventImagesClient({
                         </div>
                       )}
                       {/* Price Badge */}
-                      {image.variants.length > 0 && (
+                      {image.variants?.length > 0 && (
                         <div className="absolute top-2 left-2 bg-black/70 text-white text-xs font-medium px-2 py-1 rounded-full">
                           From {formatPrice(image.variants[0].price)}
                         </div>
@@ -655,7 +663,7 @@ export default function EventImagesClient({
                     Available Options
                   </h4>
 
-                  {variantModalImage.variants.length === 0 ? (
+                  {!variantModalImage.variants?.length ? (
                     <div className="text-center py-8 bg-gray-50 rounded-lg">
                       <p className="text-gray-500">
                         No variants available for this image.
