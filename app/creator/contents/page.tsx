@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,25 @@ import { ImageDetailModal } from "./ImageDetailModal";
 type FilterType = "all" | "recent";
 type SortType = "newest" | "oldest" | "a-z";
 
+// Wrapper component to handle Suspense boundary for useSearchParams
 export default function CreatorContentsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background">
+          <Header variant="solid" textVariant="dark" />
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <Loader2 className="size-8 animate-spin text-muted-foreground" />
+          </div>
+        </div>
+      }
+    >
+      <CreatorContentsContent />
+    </Suspense>
+  );
+}
+
+function CreatorContentsContent() {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
