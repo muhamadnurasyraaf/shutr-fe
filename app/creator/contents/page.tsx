@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,6 +21,8 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  CheckCircle,
+  X,
 } from "lucide-react";
 import { Header } from "@/app/components/Header";
 import { useRouter } from "next/navigation";
@@ -36,12 +39,14 @@ type SortType = "newest" | "oldest" | "a-z";
 
 export default function CreatorContentsPage() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [sortType, setSortType] = useState<SortType>("newest");
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const [selectedEventFilter, setSelectedEventFilter] = useState<string>("all");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const router = useRouter();
 
   // Data states
@@ -53,6 +58,30 @@ export default function CreatorContentsPage() {
   // Modal state
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Handle success message from upload page
+  useEffect(() => {
+    const message = sessionStorage.getItem("uploadSuccessMessage");
+    if (message) {
+      setSuccessMessage(message);
+      sessionStorage.removeItem("uploadSuccessMessage");
+      // Auto-dismiss after 5 seconds
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  // Handle event filter from URL query parameter
+  useEffect(() => {
+    const eventId = searchParams.get("event");
+    if (eventId) {
+      setSelectedEventFilter(eventId);
+      // Expand the event by default
+      setExpandedEvents(new Set([eventId]));
+    }
+  }, [searchParams]);
 
   // Fetch data on mount
   useEffect(() => {
@@ -219,6 +248,25 @@ export default function CreatorContentsPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header variant="solid" textVariant="dark" />
+
+      {/* Success Toast */}
+      {successMessage && (
+        <div className="fixed top-20 left-1/2 z-50 -translate-x-1/2 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 shadow-lg">
+            <CheckCircle className="size-5 text-green-600" />
+            <span className="text-sm font-medium text-green-800">
+              {successMessage}
+            </span>
+            <button
+              onClick={() => setSuccessMessage(null)}
+              className="ml-2 text-green-600 hover:text-green-800"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto max-w-7xl mt-10 px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 flex justify-between">

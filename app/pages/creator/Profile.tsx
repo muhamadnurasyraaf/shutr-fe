@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Check, User, Briefcase, CreditCard, Edit2 } from "lucide-react";
 import { Header } from "@/app/components/Header";
+import { useProfileCompletion } from "@/app/contexts/ProfileCompletionContext";
 
 interface ProfilePageProps {
   user: {
@@ -26,12 +28,23 @@ interface ProfilePageProps {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export default function PhotographerProfile({ user }: ProfilePageProps) {
-  const [isOnboarding, setIsOnboarding] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("profileCompleted") !== "true";
+  const router = useRouter();
+  const {
+    completedSections,
+    setCompletedSections,
+    isProfileComplete,
+    isLoading: isContextLoading,
+  } = useProfileCompletion();
+
+  // Determine onboarding state from context (API data)
+  const [isOnboarding, setIsOnboarding] = useState(true);
+
+  // Sync onboarding state with context once loaded
+  useEffect(() => {
+    if (!isContextLoading) {
+      setIsOnboarding(!isProfileComplete);
     }
-    return true;
-  });
+  }, [isContextLoading, isProfileComplete]);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [toast, setToast] = useState({
@@ -40,24 +53,6 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
     type: "success" as "success" | "error",
   });
   const [isLoading, setIsLoading] = useState(false);
-
-  const [completedSections, setCompletedSections] = useState(() => {
-    if (
-      typeof window !== "undefined" &&
-      localStorage.getItem("profileCompleted") === "true"
-    ) {
-      return {
-        personal: true,
-        professional: true,
-        banking: true,
-      };
-    }
-    return {
-      personal: false,
-      professional: false,
-      banking: false,
-    };
-  });
 
   // Personal Information State
   const [personalInfo, setPersonalInfo] = useState({
@@ -181,7 +176,7 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
       if (currentStep === 0) {
         const success = await savePersonalInfo();
         if (success) {
-          setCompletedSections((prev) => ({ ...prev, personal: true }));
+          setCompletedSections({ ...completedSections, personal: true });
           showToast("Personal section saved!");
           setCurrentStep(1);
         } else {
@@ -190,7 +185,7 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
       } else if (currentStep === 1) {
         const success = await saveProfessionalInfo();
         if (success) {
-          setCompletedSections((prev) => ({ ...prev, professional: true }));
+          setCompletedSections({ ...completedSections, professional: true });
           showToast("Professional section saved!");
           setCurrentStep(2);
         } else {
@@ -217,9 +212,14 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
           professional: true,
           banking: true,
         });
-        localStorage.setItem("profileCompleted", "true");
         setIsOnboarding(false);
-        showToast("Profile completed successfully!");
+        // Store success message in sessionStorage for homepage to display
+        sessionStorage.setItem(
+          "profileCompleteMessage",
+          "Profile completed successfully!",
+        );
+        // Redirect to homepage
+        router.push("/");
       } else {
         showToast("Failed to save banking info", "error");
       }
@@ -591,11 +591,9 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            City / Location{" "}
-                            <span className="text-red-500">*</span>
+                            State <span className="text-red-500">*</span>
                           </label>
-                          <input
-                            type="text"
+                          <select
                             required
                             value={professionalInfo.location}
                             onChange={(e) =>
@@ -605,7 +603,27 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
                               )
                             }
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
-                          />
+                          >
+                            <option value="">Select your state</option>
+                            <option value="Johor">Johor</option>
+                            <option value="Kedah">Kedah</option>
+                            <option value="Kelantan">Kelantan</option>
+                            <option value="Melaka">Melaka</option>
+                            <option value="Negeri Sembilan">
+                              Negeri Sembilan
+                            </option>
+                            <option value="Pahang">Pahang</option>
+                            <option value="Penang">Penang</option>
+                            <option value="Perak">Perak</option>
+                            <option value="Perlis">Perlis</option>
+                            <option value="Sabah">Sabah</option>
+                            <option value="Sarawak">Sarawak</option>
+                            <option value="Selangor">Selangor</option>
+                            <option value="Terengganu">Terengganu</option>
+                            <option value="Kuala Lumpur">Kuala Lumpur</option>
+                            <option value="Putrajaya">Putrajaya</option>
+                            <option value="Labuan">Labuan</option>
+                          </select>
                         </div>
                       </div>
 
@@ -678,13 +696,47 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                           >
                             <option value="">Select your bank</option>
-                            <option value="Maybank">Maybank</option>
-                            <option value="CIMB">CIMB Bank</option>
-                            <option value="Public Bank">Public Bank</option>
-                            <option value="RHB">RHB Bank</option>
-                            <option value="Hong Leong">Hong Leong Bank</option>
-                            <option value="AmBank">AmBank</option>
-                            <option value="Other">Other</option>
+                            <optgroup label="Major Banks">
+                              <option value="Maybank">Maybank</option>
+                              <option value="CIMB">CIMB Bank</option>
+                              <option value="Public Bank">Public Bank</option>
+                              <option value="RHB">RHB Bank</option>
+                              <option value="Hong Leong">
+                                Hong Leong Bank
+                              </option>
+                              <option value="AmBank">AmBank</option>
+                              <option value="Bank Islam">Bank Islam</option>
+                              <option value="Bank Rakyat">Bank Rakyat</option>
+                              <option value="Affin Bank">Affin Bank</option>
+                              <option value="Alliance Bank">
+                                Alliance Bank
+                              </option>
+                              <option value="OCBC">OCBC Bank</option>
+                              <option value="HSBC">HSBC Bank</option>
+                              <option value="Standard Chartered">
+                                Standard Chartered
+                              </option>
+                              <option value="UOB">UOB Bank</option>
+                              <option value="Citibank">Citibank</option>
+                              <option value="Bank Muamalat">
+                                Bank Muamalat
+                              </option>
+                              <option value="BSN">
+                                BSN (Bank Simpanan Nasional)
+                              </option>
+                              <option value="Agro Bank">Agro Bank</option>
+                            </optgroup>
+                            <optgroup label="Digital Banks">
+                              <option value="GXBank">GXBank</option>
+                              <option value="Boost Bank">Boost Bank</option>
+                              <option value="AEON Bank">AEON Bank</option>
+                              <option value="RYT Bank">
+                                RYT Bank (YTL Digital Bank)
+                              </option>
+                              <option value="KAF Digital">
+                                KAF Digital Bank
+                              </option>
+                            </optgroup>
                           </select>
                         </div>
 

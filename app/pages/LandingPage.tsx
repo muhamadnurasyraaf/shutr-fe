@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "../components/Header";
 import { Star, Calendar, Camera, Calendar1, MapPin } from "lucide-react";
 import { getCloudinaryUrl } from "@/lib/cloudinary";
@@ -26,14 +26,33 @@ interface LandingPageProps {
       location: string | null;
     };
   }[];
+  isFallback?: boolean;
 }
 
 export default function LandingPage({
   recentEvents,
   topPhotographers,
+  isFallback = false,
 }: LandingPageProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [toast, setToast] = useState<{ show: boolean; message: string }>({
+    show: false,
+    message: "",
+  });
+
+  // Check for profile complete message from sessionStorage
+  useEffect(() => {
+    const message = sessionStorage.getItem("profileCompleteMessage");
+    if (message) {
+      setToast({ show: true, message });
+      sessionStorage.removeItem("profileCompleteMessage");
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        setToast({ show: false, message: "" });
+      }, 3000);
+    }
+  }, []);
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -71,6 +90,13 @@ export default function LandingPage({
   return (
     <>
       <Header variant="transparent" />
+      {isFallback && (
+        <div className="fixed top-16 left-0 right-0 z-40 bg-amber-50 border-b border-amber-200 px-4 py-2 text-center">
+          <p className="text-sm text-amber-700">
+            Showing cached content. Live data will be available shortly.
+          </p>
+        </div>
+      )}
       <div className="min-h-screen bg-white">
         {/* Hero Section */}
         <section
@@ -90,7 +116,7 @@ export default function LandingPage({
               <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
                 Find Your Best Moment.
               </h1>
-              <p className="text-2xl md:text-4xl font-light text-cyan-400">
+              <p className="text-2xl md:text-4xl font-bold text-cyan-400">
                 Instantly.
               </p>
             </div>

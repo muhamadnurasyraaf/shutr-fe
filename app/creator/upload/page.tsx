@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, type DragEvent } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -13,13 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import {
   Upload,
@@ -28,8 +22,6 @@ import {
   AlertTriangle,
   Loader2,
   ChevronDown,
-  ChevronUp,
-  ImagePlus,
 } from "lucide-react";
 import { Header } from "@/app/components/Header";
 import {
@@ -37,38 +29,29 @@ import {
   createEvent,
   type EventListItem,
 } from "@/app/api/actions/event";
-import {
-  uploadContent,
-  uploadContentWithVariants,
-} from "@/app/api/actions/creator";
-
-interface ImageVariant {
-  id: string;
-  file: File | null;
-  preview: string;
-  name: string;
-  description: string;
-  price: string;
-}
+import { uploadContent } from "@/app/api/actions/creator";
 
 interface UploadedImage {
   id: string;
+  imageId: string; // Auto-generated ID like "KLM2024-001"
   file: File;
   preview: string;
-  caption: string;
-  tag: string;
-  showVariants: boolean;
-  variants: ImageVariant[];
 }
 
 export default function UploadContentPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [events, setEvents] = useState<EventListItem[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [hasFetchedEvents, setHasFetchedEvents] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
+  const [selectedEventName, setSelectedEventName] = useState<string>("");
+  const [selectedEventDate, setSelectedEventDate] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [images, setImages] = useState<UploadedImage[]>([]);
+  const [imageCounter, setImageCounter] = useState(1);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
@@ -76,16 +59,45 @@ export default function UploadContentPage() {
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [newEvent, setNewEvent] = useState({
+  const [newEvent, setNewEvent] = useState<{
+    name: string;
+    date: string;
+    location: string;
+    thumbnail: File | null;
+    thumbnailPreview: string;
+  }>({
     name: "",
     date: "",
     location: "",
+    thumbnail: null,
+    thumbnailPreview: "",
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const variantInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>(
-    {},
-  );
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+
+  // Generate image ID based on event name and date
+  const generateImageId = (
+    eventName: string,
+    eventDate: string,
+    counter: number,
+  ): string => {
+    // Get initials from event name (first letter of each word, max 3)
+    const words = eventName.split(/\s+/).filter(Boolean);
+    const initials = words
+      .slice(0, 3)
+      .map((word) => word.charAt(0).toUpperCase())
+      .join("");
+
+    // Get date in YYYYMMDD format
+    const date = new Date(eventDate);
+    const dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+
+    // Format counter with leading zeros (001, 002, etc.)
+    const counterStr = String(counter).padStart(3, "0");
+
+    return `${initials}${dateStr}-${counterStr}`;
+  };
 
   // Fetch all events when component mounts
   useEffect(() => {
@@ -174,20 +186,27 @@ export default function UploadContentPage() {
 
   // Handle file selection
   const handleFileSelect = (files: FileList | null) => {
-    if (!files) return;
+    if (!files || !selectedEventName || !selectedEventDate) return;
 
+    let counter = imageCounter;
     const newImages: UploadedImage[] = Array.from(files)
       .filter((file) => file.type.startsWith("image/"))
-      .map((file) => ({
-        id: Math.random().toString(36).substring(7),
-        file,
-        preview: URL.createObjectURL(file),
-        caption: "",
-        tag: "",
-        showVariants: false,
-        variants: [],
-      }));
+      .map((file) => {
+        const imageId = generateImageId(
+          selectedEventName,
+          selectedEventDate,
+          counter,
+        );
+        counter++;
+        return {
+          id: Math.random().toString(36).substring(7),
+          imageId,
+          file,
+          preview: URL.createObjectURL(file),
+        };
+      });
 
+    setImageCounter(counter);
     setImages((prev) => [...prev, ...newImages]);
   };
 
@@ -215,147 +234,37 @@ export default function UploadContentPage() {
       const removed = prev.find((img) => img.id === id);
       if (removed) {
         URL.revokeObjectURL(removed.preview);
-        removed.variants.forEach((v) => {
-          if (v.preview) URL.revokeObjectURL(v.preview);
-        });
       }
       return updated;
     });
   };
 
-  // Update image metadata
-  const updateImage = (id: string, field: "caption" | "tag", value: string) => {
-    setImages((prev) =>
-      prev.map((img) => (img.id === id ? { ...img, [field]: value } : img)),
-    );
-  };
-
-  // Toggle variants section
-  const toggleVariants = (imageId: string) => {
-    setImages((prev) =>
-      prev.map((img) => {
-        if (img.id === imageId) {
-          // If opening and no variants exist, create 3 empty slots
-          if (!img.showVariants && img.variants.length === 0) {
-            return {
-              ...img,
-              showVariants: true,
-              variants: [
-                {
-                  id: `${imageId}-v0`,
-                  file: null,
-                  preview: "",
-                  name: "",
-                  description: "",
-                  price: "",
-                },
-                {
-                  id: `${imageId}-v1`,
-                  file: null,
-                  preview: "",
-                  name: "",
-                  description: "",
-                  price: "",
-                },
-                {
-                  id: `${imageId}-v2`,
-                  file: null,
-                  preview: "",
-                  name: "",
-                  description: "",
-                  price: "",
-                },
-              ],
-            };
-          }
-          return { ...img, showVariants: !img.showVariants };
-        }
-        return img;
-      }),
-    );
-  };
-
-  // Handle variant file selection
-  const handleVariantFileSelect = (
-    imageId: string,
-    variantIndex: number,
-    file: File | null,
-  ) => {
-    if (!file) return;
-
-    setImages((prev) =>
-      prev.map((img) => {
-        if (img.id === imageId) {
-          const newVariants = [...img.variants];
-          if (newVariants[variantIndex]) {
-            // Revoke old preview if exists
-            if (newVariants[variantIndex].preview) {
-              URL.revokeObjectURL(newVariants[variantIndex].preview);
-            }
-            newVariants[variantIndex] = {
-              ...newVariants[variantIndex],
-              file,
-              preview: URL.createObjectURL(file),
-            };
-          }
-          return { ...img, variants: newVariants };
-        }
-        return img;
-      }),
-    );
-  };
-
-  // Update variant metadata
-  const updateVariant = (
-    imageId: string,
-    variantIndex: number,
-    field: "name" | "description" | "price",
-    value: string,
-  ) => {
-    setImages((prev) =>
-      prev.map((img) => {
-        if (img.id === imageId) {
-          const newVariants = [...img.variants];
-          if (newVariants[variantIndex]) {
-            newVariants[variantIndex] = {
-              ...newVariants[variantIndex],
-              [field]: value,
-            };
-          }
-          return { ...img, variants: newVariants };
-        }
-        return img;
-      }),
-    );
-  };
-
-  // Remove variant
-  const removeVariant = (imageId: string, variantIndex: number) => {
-    setImages((prev) =>
-      prev.map((img) => {
-        if (img.id === imageId) {
-          const newVariants = [...img.variants];
-          if (newVariants[variantIndex]) {
-            if (newVariants[variantIndex].preview) {
-              URL.revokeObjectURL(newVariants[variantIndex].preview);
-            }
-            newVariants[variantIndex] = {
-              ...newVariants[variantIndex],
-              file: null,
-              preview: "",
-              name: "",
-              description: "",
-              price: "",
-            };
-          }
-          return { ...img, variants: newVariants };
-        }
-        return img;
-      }),
-    );
-  };
-
   // Create new event
+  // Handle thumbnail selection for new event
+  const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      const previewUrl = URL.createObjectURL(file);
+      setNewEvent((prev) => ({
+        ...prev,
+        thumbnail: file,
+        thumbnailPreview: previewUrl,
+      }));
+    }
+  };
+
+  // Remove thumbnail
+  const handleRemoveThumbnail = () => {
+    if (newEvent.thumbnailPreview) {
+      URL.revokeObjectURL(newEvent.thumbnailPreview);
+    }
+    setNewEvent((prev) => ({
+      ...prev,
+      thumbnail: null,
+      thumbnailPreview: "",
+    }));
+  };
+
   const handleCreateEvent = async () => {
     if (!newEvent.name || !newEvent.date || !newEvent.location) return;
     if (!session?.user?.id) return;
@@ -367,23 +276,37 @@ export default function UploadContentPage() {
         date: newEvent.date,
         location: newEvent.location,
         createdBy: session.user.id,
+        thumbnail: newEvent.thumbnail || undefined,
       });
 
+      // Clean up thumbnail preview URL
+      if (newEvent.thumbnailPreview) {
+        URL.revokeObjectURL(newEvent.thumbnailPreview);
+      }
+
       // Add the new event to the list and select it
-      setEvents((prev) => [
-        {
-          id: created.id,
-          name: created.name,
-          date: created.date,
-          location: created.location,
-          imageCount: 0,
-        },
-        ...prev,
-      ]);
+      const newEventItem = {
+        id: created.id,
+        name: created.name,
+        date: created.date,
+        location: created.location,
+        imageCount: 0,
+      };
+      setEvents((prev) => [newEventItem, ...prev]);
       setSelectedEventId(created.id);
+      setSelectedEventName(created.name);
+      setSelectedEventDate(created.date);
+      setSearchQuery(created.name);
       setIsModalOpen(false);
-      setNewEvent({ name: "", date: "", location: "" });
+      setNewEvent({
+        name: "",
+        date: "",
+        location: "",
+        thumbnail: null,
+        thumbnailPreview: "",
+      });
       setShowDuplicateWarning(false);
+      setImageCounter(1); // Reset counter for new event
     } catch (error) {
       console.error("Failed to create event:", error);
     } finally {
@@ -403,74 +326,95 @@ export default function UploadContentPage() {
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
 
-        // Check if this image has variants with files
-        const validVariants = image.variants.filter(
-          (v) => v.file && v.name && v.price,
-        );
+        const formData = new FormData();
+        formData.append("file", image.file);
+        formData.append("creatorId", session.user.id);
+        formData.append("eventId", selectedEventId);
 
-        if (validVariants.length > 0) {
-          // Upload with variants
-          const formData = new FormData();
-          formData.append("file", image.file);
-          formData.append("creatorId", session.user.id);
-          formData.append("eventId", selectedEventId);
-          if (image.caption) {
-            formData.append("description", image.caption);
-          }
-
-          // Append variant files
-          validVariants.forEach((variant, idx) => {
-            if (variant.file) {
-              formData.append(`variant${idx}`, variant.file);
-            }
-          });
-
-          // Append variants metadata as JSON
-          const variantsData = validVariants.map((v) => ({
-            name: v.name,
-            description: v.description || undefined,
-            price: parseFloat(v.price) || 0,
-          }));
-          formData.append("variants", JSON.stringify(variantsData));
-
-          await uploadContentWithVariants(formData);
-        } else {
-          // Upload without variants
-          const formData = new FormData();
-          formData.append("file", image.file);
-          formData.append("creatorId", session.user.id);
-          formData.append("eventId", selectedEventId);
-          if (image.caption) {
-            formData.append("description", image.caption);
-          }
-
-          await uploadContent(formData);
-        }
+        await uploadContent(formData);
 
         setUploadProgress(Math.round(((i + 1) / images.length) * 100));
       }
 
-      // Clear images after successful upload
+      // Clear blob URLs
       images.forEach((img) => {
         URL.revokeObjectURL(img.preview);
-        img.variants.forEach((v) => {
-          if (v.preview) URL.revokeObjectURL(v.preview);
-        });
       });
-      setImages([]);
-      setSelectedEventId("");
+
+      // Store success message in sessionStorage for the contents page
+      sessionStorage.setItem(
+        "uploadSuccessMessage",
+        `Successfully uploaded ${images.length} ${images.length === 1 ? "photo" : "photos"} to "${selectedEventName}"`,
+      );
+
+      // Redirect to contents page filtered by the event
+      router.push(`/creator/contents?event=${selectedEventId}`);
     } catch (error) {
       console.error("Failed to upload images:", error);
-    } finally {
       setIsUploading(false);
       setUploadProgress(0);
     }
   };
 
   // Filter events based on search
-  const filteredEvents = events.filter((event) =>
-    event.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredEvents = searchQuery.trim()
+    ? events.filter((event) =>
+        event.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : events;
+
+  // Handle event selection from suggestions
+  const handleSelectEvent = (event: EventListItem) => {
+    setSelectedEventId(event.id);
+    setSelectedEventName(event.name);
+    setSelectedEventDate(event.date);
+    setSearchQuery(event.name);
+    setShowSuggestions(false);
+    setImageCounter(event.imageCount + 1); // Start counter after existing images
+  };
+
+  // Handle clearing the selection
+  const handleClearSelection = () => {
+    setSelectedEventId("");
+    setSelectedEventName("");
+    setSelectedEventDate("");
+    setSearchQuery("");
+    setShowSuggestions(false);
+    setImages([]); // Clear images when event is cleared
+    setImageCounter(1);
+  };
+
+  // Handle search input change
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setShowSuggestions(true);
+    // If user clears or modifies the search, clear the selection
+    if (selectedEventId && value !== selectedEventName) {
+      setSelectedEventId("");
+      setSelectedEventName("");
+      setSelectedEventDate("");
+      setImages([]); // Clear images when event changes
+      setImageCounter(1);
+    }
+  };
+
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        searchInputRef.current &&
+        !searchInputRef.current.contains(e.target as Node)
+      ) {
+        const suggestionsEl = document.getElementById("event-suggestions");
+        if (suggestionsEl && !suggestionsEl.contains(e.target as Node)) {
+          setShowSuggestions(false);
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const canSubmit = selectedEventId && images.length > 0 && !isUploading;
 
@@ -505,48 +449,101 @@ export default function UploadContentPage() {
                 Select Event
               </Label>
               <div className="flex gap-3">
-                <div className="flex-1">
-                  <Input
-                    id="event-search"
-                    type="text"
-                    placeholder="Search events by name..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="mb-2"
-                  />
-                  <Select
-                    value={selectedEventId}
-                    onValueChange={setSelectedEventId}
-                    disabled={isLoadingEvents}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue
-                        placeholder={
-                          isLoadingEvents
-                            ? "Loading events..."
-                            : "Choose an event..."
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
+                <div className="relative flex-1">
+                  <div className="relative">
+                    <Input
+                      ref={searchInputRef}
+                      id="event-search"
+                      type="text"
+                      placeholder={
+                        isLoadingEvents
+                          ? "Loading events..."
+                          : "Search or select an event..."
+                      }
+                      value={searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      onFocus={() => setShowSuggestions(true)}
+                      disabled={isLoadingEvents}
+                      className={`pr-10 ${selectedEventId ? "border-cyan-400 bg-cyan-50" : ""}`}
+                    />
+                    {selectedEventId ? (
+                      <button
+                        type="button"
+                        onClick={handleClearSelection}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    ) : (
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none" />
+                    )}
+                  </div>
+
+                  {/* Suggestions Dropdown */}
+                  {showSuggestions && !isLoadingEvents && (
+                    <div
+                      id="event-suggestions"
+                      className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-lg max-h-64 overflow-y-auto"
+                    >
                       {filteredEvents.length === 0 ? (
-                        <div className="text-muted-foreground px-2 py-4 text-center text-sm">
-                          No events found. Create one to get started.
+                        <div className="px-4 py-8 text-center">
+                          <p className="text-sm text-gray-500 mb-3">
+                            {searchQuery.trim()
+                              ? `No events found for "${searchQuery}"`
+                              : "No events yet"}
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setShowSuggestions(false);
+                              setIsModalOpen(true);
+                            }}
+                          >
+                            <Plus className="mr-2 size-3" />
+                            Create New Event
+                          </Button>
                         </div>
                       ) : (
-                        filteredEvents.map((event) => (
-                          <SelectItem key={event.id} value={event.id}>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{event.name}</span>
-                              <span className="text-muted-foreground text-xs">
-                                {formatDate(event.date)} - {event.location}
-                              </span>
+                        <>
+                          {filteredEvents.slice(0, 8).map((event) => (
+                            <button
+                              key={event.id}
+                              type="button"
+                              onClick={() => handleSelectEvent(event)}
+                              className={`w-full px-4 py-3 text-left hover:bg-gray-50 border-b last:border-b-0 transition-colors ${
+                                selectedEventId === event.id ? "bg-cyan-50" : ""
+                              }`}
+                            >
+                              <div className="font-medium text-gray-900">
+                                {event.name}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {formatDate(event.date)} • {event.location} •{" "}
+                                {event.imageCount} photos
+                              </div>
+                            </button>
+                          ))}
+                          {filteredEvents.length > 8 && (
+                            <div className="px-4 py-2 text-xs text-gray-400 text-center bg-gray-50">
+                              {filteredEvents.length - 8} more events match your
+                              search
                             </div>
-                          </SelectItem>
-                        ))
+                          )}
+                        </>
                       )}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
+
+                  {/* Selected Event Indicator */}
+                  {selectedEventId && (
+                    <div className="mt-2 flex items-center gap-2 text-sm text-cyan-600">
+                      <div className="size-2 rounded-full bg-cyan-400" />
+                      <span>
+                        Event selected: <strong>{selectedEventName}</strong>
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <Button
                   variant="outline"
@@ -554,7 +551,7 @@ export default function UploadContentPage() {
                   className="shrink-0"
                 >
                   <Plus className="mr-2 size-4" />
-                  Create New Event
+                  New Event
                 </Button>
               </div>
             </div>
@@ -568,19 +565,34 @@ export default function UploadContentPage() {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-              isDragging
-                ? "border-primary bg-primary/5"
-                : "border-muted-foreground/25 hover:border-muted-foreground/50"
+              !selectedEventId
+                ? "border-gray-200 bg-gray-50 cursor-not-allowed"
+                : isDragging
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-muted-foreground/50"
             }`}
           >
-            <Upload className="text-muted-foreground mx-auto mb-4 size-12" />
-            <p className="mb-2 text-lg font-medium">Drag & drop images here</p>
-            <p className="text-muted-foreground mb-4 text-sm">
-              or click the button below to select files
+            <Upload
+              className={`mx-auto mb-4 size-12 ${!selectedEventId ? "text-gray-300" : "text-muted-foreground"}`}
+            />
+            <p
+              className={`mb-2 text-lg font-medium ${!selectedEventId ? "text-gray-400" : ""}`}
+            >
+              {selectedEventId
+                ? "Drag & drop images here"
+                : "Select an event first"}
+            </p>
+            <p
+              className={`mb-4 text-sm ${!selectedEventId ? "text-gray-400" : "text-muted-foreground"}`}
+            >
+              {selectedEventId
+                ? "or click the button below to select files"
+                : "You need to select an event before uploading photos"}
             </p>
             <Button
               onClick={() => fileInputRef.current?.click()}
               variant="outline"
+              disabled={!selectedEventId}
             >
               Select Images
             </Button>
@@ -591,6 +603,7 @@ export default function UploadContentPage() {
               accept="image/*"
               onChange={(e) => handleFileSelect(e.target.files)}
               className="hidden"
+              disabled={!selectedEventId}
             />
           </div>
         </Card>
@@ -602,237 +615,40 @@ export default function UploadContentPage() {
               Preview ({images.length}{" "}
               {images.length === 1 ? "image" : "images"})
             </h2>
-            <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {images.map((image) => (
-                <Card key={image.id} className="overflow-hidden transition-all">
-                  <div className="flex flex-col md:flex-row">
-                    {/* Main Image */}
-                    <div className="relative md:w-1/3">
-                      {/* Remove Button */}
-                      <button
-                        onClick={() => removeImage(image.id)}
-                        className="absolute top-3 right-3 z-10 flex size-8 items-center justify-center rounded-full bg-destructive/90 text-white hover:bg-destructive"
-                        aria-label="Remove image"
-                      >
-                        <X className="size-4" />
-                      </button>
+                <div
+                  key={image.id}
+                  className="relative group rounded-lg overflow-hidden border bg-white shadow-sm"
+                >
+                  {/* Remove Button */}
+                  <button
+                    onClick={() => removeImage(image.id)}
+                    className="absolute top-2 right-2 z-10 flex size-7 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+                    aria-label="Remove image"
+                  >
+                    <X className="size-4" />
+                  </button>
 
-                      {/* Image Preview */}
-                      <div className="aspect-[4/3] overflow-hidden">
-                        <img
-                          src={image.preview || "/placeholder.svg"}
-                          alt="Preview"
-                          className="size-full object-cover"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Metadata Fields */}
-                    <div className="flex-1 space-y-3 p-4">
-                      <div>
-                        <Label
-                          htmlFor={`caption-${image.id}`}
-                          className="text-xs"
-                        >
-                          Caption (optional)
-                        </Label>
-                        <Input
-                          id={`caption-${image.id}`}
-                          type="text"
-                          placeholder="Add a caption..."
-                          value={image.caption}
-                          onChange={(e) =>
-                            updateImage(image.id, "caption", e.target.value)
-                          }
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor={`tag-${image.id}`} className="text-xs">
-                          Tag (optional)
-                        </Label>
-                        <Select
-                          value={image.tag}
-                          onValueChange={(value) =>
-                            updateImage(image.id, "tag", value)
-                          }
-                        >
-                          <SelectTrigger
-                            id={`tag-${image.id}`}
-                            className="mt-1"
-                          >
-                            <SelectValue placeholder="Select a tag..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="portrait">Portrait</SelectItem>
-                            <SelectItem value="crowd-shot">
-                              Crowd Shot
-                            </SelectItem>
-                            <SelectItem value="booth">Booth</SelectItem>
-                            <SelectItem value="speaker">Speaker</SelectItem>
-                            <SelectItem value="venue">Venue</SelectItem>
-                            <SelectItem value="food">Food</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Variants Toggle */}
-                      <button
-                        type="button"
-                        onClick={() => toggleVariants(image.id)}
-                        className="flex items-center gap-2 text-sm text-cyan-600 hover:text-cyan-700 font-medium mt-2"
-                      >
-                        {image.showVariants ? (
-                          <ChevronUp className="size-4" />
-                        ) : (
-                          <ChevronDown className="size-4" />
-                        )}
-                        Got more variants of this photo?
-                      </button>
-                    </div>
+                  {/* Image Preview */}
+                  <div className="aspect-square overflow-hidden">
+                    <img
+                      src={image.preview || "/placeholder.svg"}
+                      alt="Preview"
+                      className="size-full object-cover"
+                    />
                   </div>
 
-                  {/* Variants Section */}
-                  {image.showVariants && (
-                    <div className="border-t bg-gray-50 p-4">
-                      <h4 className="text-sm font-semibold mb-3 text-gray-700">
-                        Photo Variants (up to 3)
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {image.variants.map((variant, idx) => (
-                          <div
-                            key={variant.id}
-                            className="bg-white rounded-lg border p-3 space-y-3"
-                          >
-                            {/* Variant Image Drop Zone */}
-                            <div
-                              className={`relative aspect-square rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors ${
-                                variant.preview
-                                  ? "border-transparent"
-                                  : "border-gray-300 hover:border-cyan-400 bg-gray-50"
-                              }`}
-                              onClick={() => {
-                                const inputKey = `${image.id}-${idx}`;
-                                variantInputRefs.current[inputKey]?.click();
-                              }}
-                            >
-                              {variant.preview ? (
-                                <>
-                                  <img
-                                    src={variant.preview}
-                                    alt={`Variant ${idx + 1}`}
-                                    className="size-full object-cover rounded-lg"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      removeVariant(image.id, idx);
-                                    }}
-                                    className="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-destructive/90 text-white hover:bg-destructive"
-                                    aria-label="Remove variant"
-                                  >
-                                    <X className="size-3" />
-                                  </button>
-                                </>
-                              ) : (
-                                <div className="text-center p-4">
-                                  <ImagePlus className="size-8 text-gray-400 mx-auto mb-2" />
-                                  <p className="text-xs text-gray-500">
-                                    Click to add variant {idx + 1}
-                                  </p>
-                                </div>
-                              )}
-                              <input
-                                ref={(el) => {
-                                  variantInputRefs.current[
-                                    `${image.id}-${idx}`
-                                  ] = el;
-                                }}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) =>
-                                  handleVariantFileSelect(
-                                    image.id,
-                                    idx,
-                                    e.target.files?.[0] || null,
-                                  )
-                                }
-                              />
-                            </div>
-
-                            {/* Variant Metadata */}
-                            {variant.preview && (
-                              <>
-                                <div>
-                                  <Label className="text-xs">
-                                    Variant Name *
-                                  </Label>
-                                  <Input
-                                    type="text"
-                                    placeholder="e.g., Color Graded"
-                                    value={variant.name}
-                                    onChange={(e) =>
-                                      updateVariant(
-                                        image.id,
-                                        idx,
-                                        "name",
-                                        e.target.value,
-                                      )
-                                    }
-                                    className="mt-1 h-8 text-sm"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs">
-                                    Description (optional)
-                                  </Label>
-                                  <Input
-                                    type="text"
-                                    placeholder="Brief description..."
-                                    value={variant.description}
-                                    onChange={(e) =>
-                                      updateVariant(
-                                        image.id,
-                                        idx,
-                                        "description",
-                                        e.target.value,
-                                      )
-                                    }
-                                    className="mt-1 h-8 text-sm"
-                                  />
-                                </div>
-                                <div>
-                                  <Label className="text-xs">
-                                    Price (RM) *
-                                  </Label>
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    value={variant.price}
-                                    onChange={(e) =>
-                                      updateVariant(
-                                        image.id,
-                                        idx,
-                                        "price",
-                                        e.target.value,
-                                      )
-                                    }
-                                    className="mt-1 h-8 text-sm"
-                                  />
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </Card>
+                  {/* Image ID Badge */}
+                  <div className="p-2 bg-gray-50 border-t">
+                    <p
+                      className="text-xs font-mono text-gray-600 truncate"
+                      title={image.imageId}
+                    >
+                      {image.imageId}
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -942,6 +758,46 @@ export default function UploadContentPage() {
                 className="mt-1"
               />
             </div>
+
+            {/* Thumbnail Upload */}
+            <div>
+              <Label>Event Thumbnail (Optional)</Label>
+              <div className="mt-1">
+                {newEvent.thumbnailPreview ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={newEvent.thumbnailPreview}
+                      alt="Thumbnail preview"
+                      className="h-32 w-48 rounded-lg border object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveThumbnail}
+                      className="absolute -top-2 -right-2 flex size-6 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => thumbnailInputRef.current?.click()}
+                    className="flex h-32 w-48 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
+                  >
+                    <Upload className="mb-2 size-6 text-gray-400" />
+                    <span className="text-xs text-gray-500">
+                      Click to upload
+                    </span>
+                  </div>
+                )}
+                <input
+                  ref={thumbnailInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleThumbnailSelect}
+                  className="hidden"
+                />
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
@@ -949,7 +805,16 @@ export default function UploadContentPage() {
               variant="outline"
               onClick={() => {
                 setIsModalOpen(false);
-                setNewEvent({ name: "", date: "", location: "" });
+                if (newEvent.thumbnailPreview) {
+                  URL.revokeObjectURL(newEvent.thumbnailPreview);
+                }
+                setNewEvent({
+                  name: "",
+                  date: "",
+                  location: "",
+                  thumbnail: null,
+                  thumbnailPreview: "",
+                });
                 setShowDuplicateWarning(false);
               }}
             >

@@ -11,9 +11,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Camera, CameraOff, Heart } from "lucide-react";
+import { User, LogOut, Camera, Heart, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useProfileCompletion } from "@/app/contexts/ProfileCompletionContext";
 
 interface HeaderProps {
   variant?: "transparent" | "solid";
@@ -28,6 +29,8 @@ export function Header({
   const userType = session?.user?.type;
   const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter();
+  const { isProfileComplete, isLoading: isProfileLoading } =
+    useProfileCompletion();
   useEffect(() => {
     if (variant !== "transparent") return;
 
@@ -139,9 +142,29 @@ export function Header({
                     <Link href="/creator" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
                       <span>Profile</span>
+                      {userType === "Creator" &&
+                        !isProfileLoading &&
+                        !isProfileComplete && (
+                          <span className="ml-auto flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-orange-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                          </span>
+                        )}
                     </Link>
                   </DropdownMenuItem>
-                  {userType === "Creator" && (
+                  {userType === "Creator" &&
+                    !isProfileLoading &&
+                    !isProfileComplete && (
+                      <div className="px-2 py-2 mx-2 my-1 bg-orange-50 rounded-md border border-orange-200">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-orange-700">
+                            Complete your profile to access all features
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  {userType === "Creator" && isProfileComplete && (
                     <DropdownMenuItem
                       asChild
                       className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
@@ -169,7 +192,7 @@ export function Header({
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
-                    onClick={() => signOut()}
+                    onClick={() => signOut({ callbackUrl: "/auth/signin" })}
                     className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
