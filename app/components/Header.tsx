@@ -54,8 +54,8 @@ export function Header({
     isTransparent || (variant === "solid" && textVariant === "light");
   const textClass = useWhiteText ? "text-white" : "text-gray-900";
   const hoverTextClass = useWhiteText
-    ? "hover:text-cyan-400"
-    : "hover:text-cyan-600";
+    ? "hover:text-brand"
+    : "hover:text-brand-strong";
 
   return (
     <header
@@ -65,8 +65,8 @@ export function Header({
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="text-xl font-bold">
-              <span className="text-cyan-400">S</span>
+            <div className="text-xl font-semibold tracking-tight">
+              <span className="text-brand">S</span>
               <span className={textClass}>hutr</span>
             </div>
           </Link>
@@ -109,13 +109,13 @@ export function Header({
           <div className="flex items-center gap-3">
             {session ? (
               <DropdownMenu>
-                <DropdownMenuTrigger className="focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-full">
-                  <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-cyan-400 transition-all">
+                <DropdownMenuTrigger className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-full">
+                  <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-brand transition-all">
                     <AvatarImage
                       src={session.user?.image || undefined}
                       alt={session.user?.name || "User"}
                     />
-                    <AvatarFallback className="bg-cyan-400 text-black text-sm font-semibold">
+                    <AvatarFallback className="bg-brand text-brand-foreground text-sm font-semibold">
                       {session.user?.email?.charAt(0).toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
@@ -204,7 +204,7 @@ export function Header({
               <>
                 <button
                   onClick={() => router.push("/auth/signin")}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-cyan-400 rounded hover:bg-cyan-500 transition-colors"
+                  className="px-4 py-2 text-sm font-semibold text-brand-foreground bg-brand rounded-lg hover:bg-brand/90 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2"
                 >
                   Login / Sign Up
                 </button>

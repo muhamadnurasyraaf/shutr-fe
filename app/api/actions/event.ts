@@ -160,6 +160,31 @@ export async function getEventsList(search?: string): Promise<EventListItem[]> {
   return response.data;
 }
 
+export interface SimilarEvent {
+  id: string;
+  name: string;
+  date: string;
+  location: string;
+  thumbnailUrl: string | null;
+  similarity: number;
+}
+
+/**
+ * Fuzzy duplicate check against existing events (backend pg_trgm).
+ * Used by the create-event form, debounced after the user stops typing.
+ */
+export async function checkSimilarEvents(
+  name: string,
+  date?: string,
+): Promise<SimilarEvent[]> {
+  if (!name?.trim()) return [];
+  const serverApi = await getServerAPI();
+  const response = await serverApi.get("/event/check-similar", {
+    params: { name: name.trim(), ...(date ? { date } : {}) },
+  });
+  return response.data?.similarEvents ?? [];
+}
+
 export interface CreateEventPayload {
   name: string;
   date: string;
@@ -167,15 +192,26 @@ export interface CreateEventPayload {
   description?: string;
   createdBy: string;
   thumbnail?: File;
+  // Bypass the server-side duplicate guard and create anyway.
+  force?: boolean;
 }
 
-export async function createEvent(payload: CreateEventPayload): Promise<{
-  id: string;
-  name: string;
-  date: string;
-  location: string;
-  thumbnailUrl?: string;
-}> {
+export type CreateEventResult =
+  | {
+      status: "created";
+      event: {
+        id: string;
+        name: string;
+        date: string;
+        location: string;
+        thumbnailUrl?: string;
+      };
+    }
+  | { status: "similar"; similarEvents: SimilarEvent[] };
+
+export async function createEvent(
+  payload: CreateEventPayload,
+): Promise<CreateEventResult> {
   const serverApi = await getServerAPI();
 
   // Use FormData to support file upload
@@ -193,10 +229,26 @@ export async function createEvent(payload: CreateEventPayload): Promise<{
     formData.append("thumbnail", payload.thumbnail);
   }
 
-  const response = await serverApi.post("/event", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-  return response.data;
+  if (payload.force) {
+    formData.append("force", "true");
+  }
+
+  try {
+    const response = await serverApi.post("/event", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return { status: "created", event: response.data };
+  } catch (error: any) {
+    // Server-side duplicate guard tripped — surface the conflicts instead of throwing.
+    const data = error?.response?.data;
+    if (
+      error?.response?.status === 400 &&
+      data?.code === "SIMILAR_EVENT_EXISTS"
+    ) {
+      return { status: "similar", similarEvents: data.similarEvents ?? [] };
+    }
+    throw error;
+  }
 }

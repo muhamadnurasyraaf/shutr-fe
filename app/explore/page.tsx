@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MapPin, Calendar, Camera } from "lucide-react";
+import { MapPin, Calendar, Camera, Search } from "lucide-react";
 import { Header } from "../components/Header";
 import { useClientAPI } from "@/lib/client-api";
 import { getCloudinaryUrl } from "@/lib/cloudinary";
@@ -111,7 +111,7 @@ function ExplorePageContent() {
           {queryParam && (
             <p className="text-sm text-gray-600 mb-4">
               Showing results for "
-              <span className="text-cyan-500">{queryParam}</span>"
+              <span className="font-medium text-brand-strong">{queryParam}</span>"
             </p>
           )}
 
@@ -144,19 +144,23 @@ function ExplorePageContent() {
 
           {/* Search Bar */}
           <div className="relative max-w-xl">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               type="text"
-              placeholder="Enter Event Name / Photographer Profile"
+              placeholder="Search an event or photographer"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="pr-12 bg-white border-gray-300"
+              className="h-11 pl-9 pr-28 bg-white border-gray-300"
             />
             <button
               onClick={handleSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-cyan-400 text-white rounded hover:bg-cyan-500 transition-colors"
+              aria-label="Search"
+              disabled={isLoading}
+              className="absolute right-1.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
             >
-              {isLoading ? "..." : "🔍"}
+              <Search className="h-4 w-4" />
+              <span>{isLoading ? "Searching" : "Search"}</span>
             </button>
           </div>
         </div>
@@ -230,7 +234,7 @@ function ExplorePageContent() {
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-cyan-100 to-blue-100">
+                          <div className="h-full w-full flex items-center justify-center bg-brand-subtle">
                             <Camera className="w-12 h-12 text-gray-400" />
                           </div>
                         )}
@@ -241,8 +245,9 @@ function ExplorePageContent() {
                           {event.name}
                         </h3>
                         <Button
+                          variant="brand"
                           size="sm"
-                          className="w-full bg-cyan-400 hover:bg-cyan-500 text-black font-medium"
+                          className="w-full font-medium"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/events/${event.id}/images`);
@@ -285,8 +290,8 @@ function ExplorePageContent() {
         <div className="max-w-7xl mx-auto grid grid-cols-3 gap-8">
           {/* Brand */}
           <div>
-            <div className="text-xl font-bold mb-4">
-              <span className="text-cyan-400">S</span>
+            <div className="text-xl font-semibold tracking-tight mb-4">
+              <span className="text-brand">S</span>
               <span className="text-gray-900">hutr</span>
             </div>
             <p className="text-sm text-gray-500">
@@ -299,17 +304,17 @@ function ExplorePageContent() {
             <h4 className="font-semibold text-gray-900 mb-3">Quick Links</h4>
             <ul className="space-y-2 text-sm text-gray-600">
               <li>
-                <a href="/events" className="hover:text-cyan-500">
+                <a href="/events" className="hover:text-brand-strong">
                   Search Events
                 </a>
               </li>
               <li>
-                <a href="/photographers" className="hover:text-cyan-500">
+                <a href="/photographers" className="hover:text-brand-strong">
                   Find Photographers
                 </a>
               </li>
               <li>
-                <a href="/faq" className="hover:text-cyan-500">
+                <a href="/faq" className="hover:text-brand-strong">
                   Top Photographers
                 </a>
               </li>
@@ -321,17 +326,17 @@ function ExplorePageContent() {
             <h4 className="font-semibold text-gray-900 mb-3">Support</h4>
             <ul className="space-y-2 text-sm text-gray-600">
               <li>
-                <a href="/help" className="hover:text-cyan-500">
+                <a href="/help" className="hover:text-brand-strong">
                   Help Center
                 </a>
               </li>
               <li>
-                <a href="/contact" className="hover:text-cyan-500">
+                <a href="/contact" className="hover:text-brand-strong">
                   Contact Us
                 </a>
               </li>
               <li>
-                <a href="/faq" className="hover:text-cyan-500">
+                <a href="/faq" className="hover:text-brand-strong">
                   FAQ
                 </a>
               </li>
@@ -340,17 +345,17 @@ function ExplorePageContent() {
             <h4 className="font-semibold text-gray-900 mb-3 mt-6">Legal</h4>
             <ul className="space-y-2 text-sm text-gray-600">
               <li>
-                <a href="/privacy" className="hover:text-cyan-500">
+                <a href="/privacy" className="hover:text-brand-strong">
                   Privacy Policy
                 </a>
               </li>
               <li>
-                <a href="/terms" className="hover:text-cyan-500">
+                <a href="/terms" className="hover:text-brand-strong">
                   Terms of Service
                 </a>
               </li>
               <li>
-                <a href="/cookies" className="hover:text-cyan-500">
+                <a href="/cookies" className="hover:text-brand-strong">
                   Cookie Policy
                 </a>
               </li>

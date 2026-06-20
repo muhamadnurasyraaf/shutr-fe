@@ -41,6 +41,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-subtle: var(--brand-subtle);
 }
 
 :root {
@@ -53,6 +57,13 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
+  /* Brand accent — one source of truth, replaces scattered cyan-400 magic values.
+     Paired with an ink foreground so the CTA stays readable (AA) instead of the
+     low-contrast white-on-cyan it had before. */
+  --brand: oklch(0.789 0.1285 207.5); /* bright cyan */
+  --brand-foreground: oklch(0.205 0 0); /* ink text on brand */
+  --brand-strong: oklch(0.52 0.094 221); /* deeper cyan: hover + links on light */
+  --brand-subtle: oklch(0.956 0.038 207.5); /* tint for icon wells, soft fills */
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -87,6 +98,10 @@
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
+  --brand: oklch(0.789 0.1285 207.5);
+  --brand-foreground: oklch(0.205 0 0);
+  --brand-strong: oklch(0.7 0.12 210);
+  --brand-subtle: oklch(0.32 0.06 220);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);

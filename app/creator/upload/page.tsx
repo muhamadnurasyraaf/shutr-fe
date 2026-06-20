@@ -27,7 +27,9 @@ import { Header } from "@/app/components/Header";
 import {
   getEventsList,
   createEvent,
+  checkSimilarEvents,
   type EventListItem,
+  type SimilarEvent,
 } from "@/app/api/actions/event";
 import { uploadContent } from "@/app/api/actions/creator";
 
@@ -54,8 +56,9 @@ export default function UploadContentPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
-  const [duplicateEventName, setDuplicateEventName] = useState("");
+  const [similarEvents, setSimilarEvents] = useState<SimilarEvent[]>([]);
+  const [isCheckingSimilar, setIsCheckingSimilar] = useState(false);
+  const similarCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -119,69 +122,34 @@ export default function UploadContentPage() {
     fetchEvents();
   }, [hasFetchedEvents]);
 
-  // Calculate similarity percentage (simple Levenshtein-based approach)
-  const calculateSimilarity = (str1: string, str2: string): number => {
-    const longer = str1.length > str2.length ? str1 : str2;
-    const shorter = str1.length > str2.length ? str2 : str1;
-
-    if (longer.length === 0) return 100;
-
-    const editDistance = (s1: string, s2: string): number => {
-      s1 = s1.toLowerCase();
-      s2 = s2.toLowerCase();
-      const costs: number[] = [];
-
-      for (let i = 0; i <= s1.length; i++) {
-        let lastValue = i;
-        for (let j = 0; j <= s2.length; j++) {
-          if (i === 0) {
-            costs[j] = j;
-          } else if (j > 0) {
-            let newValue = costs[j - 1];
-            if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
-              newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
-            }
-            costs[j - 1] = lastValue;
-            lastValue = newValue;
-          }
-        }
-        if (i > 0) costs[s2.length] = lastValue;
-      }
-
-      return costs[s2.length];
-    };
-
-    return (
-      ((longer.length - editDistance(longer, shorter)) / longer.length) * 100
-    );
-  };
-
-  // Check for duplicate events
-  const checkDuplicateEvent = (eventName: string): string | null => {
-    for (const event of events) {
-      const similarity = calculateSimilarity(eventName, event.name);
-      if (similarity >= 90) {
-        return event.name;
-      }
+  // Debounced fuzzy duplicate check against the backend (pg_trgm).
+  // Runs after the user stops typing; the create button is gated while it's pending.
+  const runSimilarCheck = (name: string, date: string) => {
+    if (similarCheckTimeout.current) clearTimeout(similarCheckTimeout.current);
+    if (!name.trim()) {
+      setIsCheckingSimilar(false);
+      setSimilarEvents([]);
+      return;
     }
-    return null;
+    setIsCheckingSimilar(true);
+    similarCheckTimeout.current = setTimeout(async () => {
+      try {
+        const found = await checkSimilarEvents(name, date || undefined);
+        setSimilarEvents(found);
+      } catch (error) {
+        // Fail-open: a flaky check must not block creation (server re-checks anyway).
+        console.error("Similar-event check failed:", error);
+        setSimilarEvents([]);
+      } finally {
+        setIsCheckingSimilar(false);
+      }
+    }, 450);
   };
 
   // Handle new event name change
   const handleNewEventNameChange = (value: string) => {
-    setNewEvent({ ...newEvent, name: value });
-
-    if (value.trim()) {
-      const duplicate = checkDuplicateEvent(value);
-      if (duplicate) {
-        setDuplicateEventName(duplicate);
-        setShowDuplicateWarning(true);
-      } else {
-        setShowDuplicateWarning(false);
-      }
-    } else {
-      setShowDuplicateWarning(false);
-    }
+    setNewEvent((prev) => ({ ...prev, name: value }));
+    runSimilarCheck(value, newEvent.date);
   };
 
   // Handle file selection
@@ -269,15 +237,30 @@ export default function UploadContentPage() {
     if (!newEvent.name || !newEvent.date || !newEvent.location) return;
     if (!session?.user?.id) return;
 
+    // Don't submit while the duplicate check is still running.
+    if (isCheckingSimilar) return;
+
     setIsCreatingEvent(true);
     try {
-      const created = await createEvent({
+      const result = await createEvent({
         name: newEvent.name,
         date: newEvent.date,
         location: newEvent.location,
         createdBy: session.user.id,
         thumbnail: newEvent.thumbnail || undefined,
+        // If similar events are already surfaced, this click is a deliberate
+        // "Create anyway" → bypass the server guard.
+        force: similarEvents.length > 0,
       });
+
+      // Server-side guard tripped (e.g. a race the debounced check missed) —
+      // surface the conflicts and let the user confirm with "Create Anyway".
+      if (result.status === "similar") {
+        setSimilarEvents(result.similarEvents);
+        return;
+      }
+
+      const created = result.event;
 
       // Clean up thumbnail preview URL
       if (newEvent.thumbnailPreview) {
@@ -305,7 +288,7 @@ export default function UploadContentPage() {
         thumbnail: null,
         thumbnailPreview: "",
       });
-      setShowDuplicateWarning(false);
+      setSimilarEvents([]);
       setImageCounter(1); // Reset counter for new event
     } catch (error) {
       console.error("Failed to create event:", error);
@@ -704,17 +687,41 @@ export default function UploadContentPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Checking indicator */}
+            {isCheckingSimilar && (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="size-4 animate-spin" />
+                Checking for similar events…
+              </div>
+            )}
+
             {/* Duplicate Warning */}
-            {showDuplicateWarning && (
+            {!isCheckingSimilar && similarEvents.length > 0 && (
               <div className="flex gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900/50 dark:bg-yellow-900/20">
                 <AlertTriangle className="mt-0.5 size-5 shrink-0 text-yellow-600 dark:text-yellow-500" />
                 <div className="text-sm">
                   <p className="font-medium text-yellow-800 dark:text-yellow-400">
-                    Similar event found
+                    {similarEvents.length === 1
+                      ? "A similar event already exists"
+                      : `${similarEvents.length} similar events already exist`}
                   </p>
-                  <p className="text-yellow-700 dark:text-yellow-500">
-                    This event already exists: &quot;{duplicateEventName}&quot;.
-                    Are you sure you want to create a new one?
+                  <ul className="mt-1 space-y-0.5 text-yellow-700 dark:text-yellow-500">
+                    {similarEvents.map((ev) => (
+                      <li key={ev.id}>
+                        • {ev.name}
+                        {ev.location ? ` — ${ev.location}` : ""}
+                        {ev.date
+                          ? ` (${new Date(ev.date).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })})`
+                          : ""}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1.5 text-yellow-700 dark:text-yellow-500">
+                    You can still create it with &ldquo;Create Anyway&rdquo;.
                   </p>
                 </div>
               </div>
@@ -738,9 +745,11 @@ export default function UploadContentPage() {
                 id="event-date"
                 type="date"
                 value={newEvent.date}
-                onChange={(e) =>
-                  setNewEvent({ ...newEvent, date: e.target.value })
-                }
+                onChange={(e) => {
+                  const date = e.target.value;
+                  setNewEvent((prev) => ({ ...prev, date }));
+                  runSimilarCheck(newEvent.name, date);
+                }}
                 className="mt-1"
               />
             </div>
@@ -815,7 +824,11 @@ export default function UploadContentPage() {
                   thumbnail: null,
                   thumbnailPreview: "",
                 });
-                setShowDuplicateWarning(false);
+                setSimilarEvents([]);
+                setIsCheckingSimilar(false);
+                if (similarCheckTimeout.current) {
+                  clearTimeout(similarCheckTimeout.current);
+                }
               }}
             >
               Cancel
@@ -826,7 +839,8 @@ export default function UploadContentPage() {
                 !newEvent.name ||
                 !newEvent.date ||
                 !newEvent.location ||
-                isCreatingEvent
+                isCreatingEvent ||
+                isCheckingSimilar
               }
             >
               {isCreatingEvent ? (
@@ -834,6 +848,13 @@ export default function UploadContentPage() {
                   <Loader2 className="mr-2 size-4 animate-spin" />
                   Creating...
                 </>
+              ) : isCheckingSimilar ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Checking...
+                </>
+              ) : similarEvents.length > 0 ? (
+                "Create Anyway"
               ) : (
                 "Create Event"
               )}

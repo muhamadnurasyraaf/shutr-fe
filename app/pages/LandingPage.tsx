@@ -4,7 +4,15 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Header } from "../components/Header";
-import { Star, Calendar, Camera, Calendar1, MapPin } from "lucide-react";
+import {
+  Star,
+  Calendar,
+  Camera,
+  Calendar1,
+  MapPin,
+  Search,
+  Download,
+} from "lucide-react";
 import { getCloudinaryUrl } from "@/lib/cloudinary";
 import { redirect, useRouter } from "next/navigation";
 
@@ -108,41 +116,39 @@ export default function LandingPage({
             backgroundRepeat: "no-repeat",
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-black/80" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/45 to-black/75" />
 
           <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-4">
-            {/* Main Heading */}
-            <div className="text-center mb-12">
-              <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-                Find Your Best Moment.
+            {/* Main Heading — one dominant line, accent as support not a second shout */}
+            <div className="text-center mb-10">
+              <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-white text-balance">
+                Find your best moment,{" "}
+                <span className="text-brand">instantly.</span>
               </h1>
-              <p className="text-2xl md:text-4xl font-bold text-cyan-400">
-                Instantly.
+              <p className="mx-auto mt-5 max-w-xl text-base md:text-lg text-white/75 text-balance">
+                Browse, search, and relive your favorite event — in just a few
+                clicks.
               </p>
             </div>
 
-            {/* Subtitle */}
-            <p className="text-center text-white/80 text-lg mb-8 max-w-2xl">
-              Browse, search, and relive your favorite event experience in just
-              a few clicks.
-            </p>
-
-            {/* Search Bar */}
-            <div className="w-full max-w-2xl">
-              <div className="flex gap-2">
+            {/* Search Bar — one unified field, real icon, accessible label */}
+            <div className="w-full max-w-xl">
+              <div className="flex items-center gap-2 rounded-2xl bg-white/95 p-2 shadow-lg ring-1 ring-black/5 backdrop-blur transition-shadow focus-within:ring-2 focus-within:ring-brand">
+                <Search className="ml-2 h-5 w-5 shrink-0 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Enter Event Name / Photographer Profile"
+                  placeholder="Search an event or photographer"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="flex-1 px-6 py-3 rounded text-sm bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                  className="flex-1 bg-transparent px-1 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
                 />
                 <button
                   onClick={handleSearch}
-                  className="px-6 py-3 bg-cyan-400 text-black font-semibold rounded hover:bg-cyan-300 transition-colors"
+                  aria-label="Search"
+                  className="rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
                 >
-                  🔍
+                  Search
                 </button>
               </div>
             </div>
@@ -152,15 +158,15 @@ export default function LandingPage({
         {/* How It Works Section */}
         <section className="py-20 px-4 bg-white">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-gray-900">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-center mb-16 text-gray-900">
               How It Works
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Step 1 */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-cyan-100 rounded-full flex items-center justify-center mb-6">
-                  <Calendar className="w-10 h-10 text-cyan-500" />
+                <div className="w-20 h-20 bg-brand-subtle rounded-full flex items-center justify-center mb-6">
+                  <Calendar className="w-10 h-10 text-brand-strong" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   Choose Your Event
@@ -173,8 +179,8 @@ export default function LandingPage({
 
               {/* Step 2 */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-cyan-100 rounded-full flex items-center justify-center mb-6">
-                  <Camera className="w-10 h-10 text-cyan-500" />
+                <div className="w-20 h-20 bg-brand-subtle rounded-full flex items-center justify-center mb-6">
+                  <Camera className="w-10 h-10 text-brand-strong" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   Search Your Photos
@@ -187,20 +193,8 @@ export default function LandingPage({
 
               {/* Step 3 */}
               <div className="flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-cyan-100 rounded-full flex items-center justify-center mb-6">
-                  <svg
-                    className="w-10 h-10 text-cyan-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-                    />
-                  </svg>
+                <div className="w-20 h-20 bg-brand-subtle rounded-full flex items-center justify-center mb-6">
+                  <Download className="w-10 h-10 text-brand-strong" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">
                   Download Your Memories
@@ -217,7 +211,7 @@ export default function LandingPage({
         {/* Browse Recent Events Section */}
         <section className="py-20 px-4 bg-gray-50">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-gray-900 text-center">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-12 text-gray-900 text-center">
               Browse Recent Events
             </h2>
 
@@ -225,7 +219,7 @@ export default function LandingPage({
               {recentEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="rounded-lg overflow-hidden border border-gray-200 text-gray-900 bg-white hover:shadow-xl transition-all duration-300 cursor-pointer"
+                  className="rounded-2xl overflow-hidden border border-gray-200 text-gray-900 bg-white hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
                 >
                   {/* Event Image */}
                   <div className="relative w-full h-48">
@@ -237,7 +231,7 @@ export default function LandingPage({
                         className="object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-100 to-blue-100">
+                      <div className="w-full h-full flex items-center justify-center bg-brand-subtle">
                         <Camera className="w-16 h-16 text-gray-400" />
                       </div>
                     )}
@@ -267,7 +261,7 @@ export default function LandingPage({
 
                     <button
                       onClick={() => redirect(`/events/${event.id}/images`)}
-                      className="w-full px-4 py-2 bg-cyan-400 text-black font-semibold rounded hover:bg-cyan-500 transition-colors"
+                      className="w-full px-4 py-2 bg-brand text-brand-foreground font-semibold rounded-lg hover:bg-brand/90 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                     >
                       View Photos
                     </button>
@@ -281,7 +275,7 @@ export default function LandingPage({
         {/* Top Photographers Section */}
         <section className="py-20 px-4 bg-white">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-gray-900 text-center">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-12 text-gray-900 text-center">
               Top Photographers Of The Week
             </h2>
 
@@ -289,7 +283,7 @@ export default function LandingPage({
               {topPhotographers.map((photographer) => (
                 <div
                   key={photographer.id}
-                  className="flex flex-col items-center text-center p-6 rounded-lg border border-gray-200 bg-white hover:shadow-lg transition-all cursor-pointer"
+                  className="flex flex-col items-center text-center p-6 rounded-2xl border border-gray-200 bg-white hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
                 >
                   <div className="w-20 h-20 rounded-full bg-gray-200 mb-4 flex items-center justify-center">
                     <Camera className="w-10 h-10 text-gray-400" />
@@ -311,7 +305,7 @@ export default function LandingPage({
         {/* Testimonials Section */}
         <section className="py-20 px-4 bg-gray-50">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-gray-900 text-center">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-12 text-gray-900 text-center">
               What Our Users Say
             </h2>
 
@@ -319,7 +313,7 @@ export default function LandingPage({
               {testimonials.map((testimonial) => (
                 <div
                   key={testimonial.id}
-                  className="p-6 rounded-lg border border-gray-200 bg-white"
+                  className="p-6 rounded-2xl border border-gray-200 bg-white"
                 >
                   <div className="flex items-center gap-1 mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
@@ -346,8 +340,8 @@ export default function LandingPage({
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Brand */}
             <div>
-              <div className="text-2xl font-bold mb-4">
-                <span className="text-cyan-400">S</span>
+              <div className="text-2xl font-semibold tracking-tight mb-4">
+                <span className="text-brand">S</span>
                 <span className="text-gray-900">hutr</span>
               </div>
               <p className="text-sm text-gray-600">
@@ -360,17 +354,17 @@ export default function LandingPage({
               <h4 className="font-semibold text-gray-900 mb-4">Quick Links</h4>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li>
-                  <a href="/events" className="hover:text-cyan-500">
+                  <a href="/events" className="hover:text-brand-strong">
                     Search Events
                   </a>
                 </li>
                 <li>
-                  <a href="/photographers" className="hover:text-cyan-500">
+                  <a href="/photographers" className="hover:text-brand-strong">
                     Find Photographers
                   </a>
                 </li>
                 <li>
-                  <a href="/about" className="hover:text-cyan-500">
+                  <a href="/about" className="hover:text-brand-strong">
                     About Us
                   </a>
                 </li>
@@ -382,17 +376,17 @@ export default function LandingPage({
               <h4 className="font-semibold text-gray-900 mb-4">Support</h4>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li>
-                  <a href="/help" className="hover:text-cyan-500">
+                  <a href="/help" className="hover:text-brand-strong">
                     Help Center
                   </a>
                 </li>
                 <li>
-                  <a href="/contact" className="hover:text-cyan-500">
+                  <a href="/contact" className="hover:text-brand-strong">
                     Contact Us
                   </a>
                 </li>
                 <li>
-                  <a href="/faq" className="hover:text-cyan-500">
+                  <a href="/faq" className="hover:text-brand-strong">
                     FAQ
                   </a>
                 </li>

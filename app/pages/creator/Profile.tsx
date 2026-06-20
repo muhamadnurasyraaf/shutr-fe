@@ -213,13 +213,13 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
           banking: true,
         });
         setIsOnboarding(false);
-        // Store success message in sessionStorage for homepage to display
+        // Store success message in sessionStorage for the contents page to display
         sessionStorage.setItem(
           "profileCompleteMessage",
           "Profile completed successfully!",
         );
-        // Redirect to homepage
-        router.push("/");
+        // Redirect creators straight to their content manager
+        router.push("/creator/contents");
       } else {
         showToast("Failed to save banking info", "error");
       }
@@ -386,24 +386,12 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
                 </div>
               )}
 
-              {/* Action Button */}
-              <div className="mt-6">
-                {isOnboarding ? (
-                  currentStep === 2 && (
-                    <button
-                      onClick={handleCompleteProfile}
-                      disabled={!isStepValid() || isLoading}
-                      className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors
-                        ${
-                          isStepValid() && !isLoading
-                            ? "bg-green-500 text-white hover:bg-green-600"
-                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                        }`}
-                    >
-                      {isLoading ? "Saving..." : "Complete Profile"}
-                    </button>
-                  )
-                ) : (
+              {/* Action Button — during onboarding, each step's advance action
+                  (Continue / Complete Profile) lives in its own form footer so it
+                  stays where the eye expects it. Here we only surface "Save Changes"
+                  when editing an already-complete profile. */}
+              {!isOnboarding && (
+                <div className="mt-6">
                   <button
                     onClick={handleSaveChanges}
                     disabled={isLoading}
@@ -415,8 +403,8 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
                   >
                     {isLoading ? "Saving..." : "Save Changes"}
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Right Content Area - Form sections display here */}
@@ -780,12 +768,24 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
                       </div>
 
                       {isOnboarding && (
-                        <div className="flex items-center justify-between pt-6 mt-6 border-t border-gray-200">
+                        <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-200">
                           <button
                             onClick={handlePrevious}
                             className="bg-white text-gray-700 border border-gray-300 px-6 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
                           >
                             Previous
+                          </button>
+                          <button
+                            onClick={handleCompleteProfile}
+                            disabled={!isStepValid() || isLoading}
+                            className={`flex items-center gap-2 px-6 py-2 rounded-lg font-semibold transition-colors
+                              ${
+                                isStepValid() && !isLoading
+                                  ? "bg-green-500 text-white hover:bg-green-600"
+                                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              }`}
+                          >
+                            {isLoading ? "Saving..." : "Complete Profile"}
                           </button>
                         </div>
                       )}

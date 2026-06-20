@@ -77,12 +77,15 @@ function CreatorContentsContent() {
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Handle success message from upload page
+  // Handle success message from the upload page or the profile-completion flow
   useEffect(() => {
-    const message = sessionStorage.getItem("uploadSuccessMessage");
+    const message =
+      sessionStorage.getItem("uploadSuccessMessage") ||
+      sessionStorage.getItem("profileCompleteMessage");
     if (message) {
       setSuccessMessage(message);
       sessionStorage.removeItem("uploadSuccessMessage");
+      sessionStorage.removeItem("profileCompleteMessage");
       // Auto-dismiss after 5 seconds
       const timer = setTimeout(() => {
         setSuccessMessage(null);
