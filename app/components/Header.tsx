@@ -11,7 +11,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, Camera, Heart, AlertCircle } from "lucide-react";
+import {
+  User,
+  LogOut,
+  Camera,
+  Heart,
+  AlertCircle,
+  CalendarDays,
+  Wallet,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useProfileCompletion } from "@/app/contexts/ProfileCompletionContext";
@@ -175,6 +183,34 @@ export function Header({
                       >
                         <Camera className="h-4 w-4" />
                         <span>My Uploaded Contents</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {userType === "Creator" && isProfileComplete && (
+                    <DropdownMenuItem
+                      asChild
+                      className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                    >
+                      <Link
+                        href="/creator/events"
+                        className="flex items-center gap-2"
+                      >
+                        <CalendarDays className="h-4 w-4" />
+                        <span>My Events</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {userType === "Creator" && isProfileComplete && (
+                    <DropdownMenuItem
+                      asChild
+                      className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                    >
+                      <Link
+                        href="/creator/wallet"
+                        className="flex items-center gap-2"
+                      >
+                        <Wallet className="h-4 w-4" />
+                        <span>Wallet &amp; Payouts</span>
                       </Link>
                     </DropdownMenuItem>
                   )}

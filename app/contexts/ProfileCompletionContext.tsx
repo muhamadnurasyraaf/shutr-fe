@@ -16,6 +16,7 @@ interface CompletedSections {
   personal: boolean;
   professional: boolean;
   banking: boolean;
+  terms: boolean;
 }
 
 interface ProfileCompletionContextType {
@@ -35,12 +36,14 @@ export function ProfileCompletionProvider({ children }: { children: ReactNode })
     personal: false,
     professional: false,
     banking: false,
+    terms: false,
   });
 
   const isProfileComplete =
     completedSections.personal &&
     completedSections.professional &&
-    completedSections.banking;
+    completedSections.banking &&
+    completedSections.terms;
 
   const fetchProfileStatus = useCallback(async () => {
     if (!session?.user?.id || session?.user?.type !== "Creator") {
@@ -60,6 +63,7 @@ export function ProfileCompletionProvider({ children }: { children: ReactNode })
           personal: data.personal ?? false,
           professional: data.professional ?? false,
           banking: data.banking ?? false,
+          terms: data.terms ?? false,
         });
       }
     } catch (error) {

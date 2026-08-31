@@ -187,13 +187,22 @@ export async function checkSimilarEvents(
 
 export interface CreateEventPayload {
   name: string;
+  category?: string;
   date: string;
   location: string;
+  latitude?: number | null;
+  longitude?: number | null;
   description?: string;
   createdBy: string;
   thumbnail?: File;
   // Bypass the server-side duplicate guard and create anyway.
   force?: boolean;
+  // Publish immediately (true) or save as a draft (false).
+  publish?: boolean;
+  // Watermark configuration for previews.
+  watermarkMode?: "default" | "custom" | "none";
+  watermarkText?: string;
+  watermarkLogoPublicId?: string;
 }
 
 export type CreateEventResult =
@@ -205,6 +214,8 @@ export type CreateEventResult =
         date: string;
         location: string;
         thumbnailUrl?: string;
+        status?: string;
+        category?: string;
       };
     }
   | { status: "similar"; similarEvents: SimilarEvent[] };
@@ -221,17 +232,22 @@ export async function createEvent(
   formData.append("location", payload.location);
   formData.append("createdBy", payload.createdBy);
 
-  if (payload.description) {
-    formData.append("description", payload.description);
-  }
-
-  if (payload.thumbnail) {
-    formData.append("thumbnail", payload.thumbnail);
-  }
-
-  if (payload.force) {
-    formData.append("force", "true");
-  }
+  if (payload.category) formData.append("category", payload.category);
+  if (payload.latitude != null)
+    formData.append("latitude", String(payload.latitude));
+  if (payload.longitude != null)
+    formData.append("longitude", String(payload.longitude));
+  if (payload.description) formData.append("description", payload.description);
+  if (payload.thumbnail) formData.append("thumbnail", payload.thumbnail);
+  if (payload.force) formData.append("force", "true");
+  // Default publish=true on the backend; only send when saving a draft.
+  if (payload.publish === false) formData.append("publish", "false");
+  if (payload.watermarkMode)
+    formData.append("watermarkMode", payload.watermarkMode);
+  if (payload.watermarkText)
+    formData.append("watermarkText", payload.watermarkText);
+  if (payload.watermarkLogoPublicId)
+    formData.append("watermarkLogoPublicId", payload.watermarkLogoPublicId);
 
   try {
     const response = await serverApi.post("/event", formData, {

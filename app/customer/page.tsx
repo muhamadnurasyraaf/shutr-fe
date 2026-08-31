@@ -10,5 +10,11 @@ export default async function Page() {
     redirect("/auth/signin");
   }
 
+  // Creators belong on the creator dashboard — redirect server-side so the
+  // customer view never flashes for them.
+  if (session.user.type === "Creator") {
+    redirect("/creator");
+  }
+
   return <CustomerDashboard user={session.user} />;
 }

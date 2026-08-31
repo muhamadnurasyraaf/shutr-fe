@@ -5,13 +5,21 @@ import { useState } from "react";
 import Link from "next/link";
 import Cookies from "js-cookie";
 
+type UserType = "Creator" | "Customer";
+
 export default function SignIn() {
-  const [isLoading, setIsLoading] = useState<"Creator" | "Customer" | null>(
-    null
-  );
+  const [isLoading, setIsLoading] = useState<UserType | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleGoogleSignIn = async (userType: "Creator" | "Customer") => {
+  // Passwordless email-code flow state.
+  const [emailType, setEmailType] = useState<UserType>("Customer");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailInfo, setEmailInfo] = useState<string | null>(null);
+
+  const handleGoogleSignIn = async (userType: UserType) => {
     try {
       setIsLoading(userType);
 
@@ -24,6 +32,67 @@ export default function SignIn() {
       console.error("Sign in error:", err);
     } finally {
       setIsLoading(null);
+    }
+  };
+
+  const handleSendCode = async () => {
+    setError(null);
+    setEmailInfo(null);
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
+    }
+    try {
+      setEmailBusy(true);
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/email/request-code`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), type: emailType }),
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || "Failed to send code.");
+      }
+      setCodeSent(true);
+      setEmailInfo("We've sent a login code to your email. Enter it below.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to send code. Try again."
+      );
+    } finally {
+      setEmailBusy(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    setError(null);
+    if (!code.trim()) {
+      setError("Please enter the code from your email.");
+      return;
+    }
+    try {
+      setEmailBusy(true);
+      const callbackUrl = emailType === "Creator" ? "/creator" : "/customer";
+      const result = await signIn("email-code", {
+        email: email.trim(),
+        code: code.trim(),
+        type: emailType,
+        redirect: false,
+        callbackUrl,
+      });
+      if (result?.error) {
+        setError("Invalid or expired code. Please try again.");
+        return;
+      }
+      window.location.href = result?.url || callbackUrl;
+    } catch (err) {
+      setError("Failed to sign in. Please try again.");
+      console.error("Verify code error:", err);
+    } finally {
+      setEmailBusy(false);
     }
   };
 
@@ -121,6 +190,99 @@ export default function SignIn() {
             </svg>
             {isLoading === "Creator" ? "Signing in..." : "Continue as Creator"}
           </button>
+
+          {/* Divider: email */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-700" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-900 text-gray-400">
+                Or sign in with email
+              </span>
+            </div>
+          </div>
+
+          {/* Email code flow */}
+          <div className="mb-6">
+            {/* Account type toggle */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {(["Customer", "Creator"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setEmailType(t)}
+                  disabled={emailBusy}
+                  className={`py-2 rounded-lg text-sm font-medium border transition-colors disabled:opacity-50 ${
+                    emailType === t
+                      ? "bg-white text-black border-white"
+                      : "bg-transparent text-gray-300 border-gray-700 hover:bg-gray-800"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              disabled={emailBusy || codeSent}
+              className="w-full py-3 px-4 mb-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 disabled:opacity-60"
+            />
+
+            {!codeSent ? (
+              <button
+                type="button"
+                onClick={handleSendCode}
+                disabled={emailBusy}
+                className="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {emailBusy ? "Sending code..." : "Send login code"}
+              </button>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="Enter 6-digit code"
+                  disabled={emailBusy}
+                  className="w-full py-3 px-4 mb-3 tracking-[0.4em] text-center bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 disabled:opacity-60"
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyCode}
+                  disabled={emailBusy}
+                  className="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {emailBusy ? "Verifying..." : "Verify & sign in"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCodeSent(false);
+                    setCode("");
+                    setEmailInfo(null);
+                  }}
+                  disabled={emailBusy}
+                  className="w-full mt-2 text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+                >
+                  Use a different email
+                </button>
+              </>
+            )}
+
+            {emailInfo && (
+              <p className="mt-3 text-sm text-green-400 text-center">
+                {emailInfo}
+              </p>
+            )}
+          </div>
 
           {/* Divider */}
           <div className="relative mb-6">

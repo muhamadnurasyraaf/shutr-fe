@@ -12,6 +12,12 @@ export default async function Page(){
        redirect("/auth/signin");
     }
 
+    // Customers belong on the customer dashboard — redirect server-side so the
+    // creator view never flashes for them.
+    if (session.user.type === "Customer") {
+       redirect("/customer");
+    }
+
     const user = await fetchCreatorProfile(session?.user?.id)
 
     return <PhotographerProfile user={user} />

@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthOptions, DefaultSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { cookies } from "next/headers";
 
 declare module "next-auth" {
@@ -33,11 +34,67 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
+    // Passwordless email login: the user has already received a one-time code
+    // by email; here we exchange { email, code, type } with the backend for an
+    // access token. No password is ever collected or stored.
+    CredentialsProvider({
+      id: "email-code",
+      name: "Email Code",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        code: { label: "Code", type: "text" },
+        type: { label: "Type", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.code) return null;
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/email/verify-code`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: credentials.email,
+              code: credentials.code,
+              type: credentials.type,
+            }),
+          }
+        );
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        // Shape must satisfy NextAuth's User; the extra fields are carried into
+        // the JWT via the jwt() callback below.
+        return {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name,
+          image: data.user.image,
+          backendToken: data.accessToken,
+          displayName: data.user.displayName,
+          phoneNumber: data.user.phoneNumber,
+          type: data.user.type,
+        } as any;
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user, account, trigger }) {
-      // On initial sign in, fetch user data from backend
-      if (account && user) {
+      // Passwordless email sign-in: authorize() already returned the backend
+      // token and user fields, so copy them straight into the JWT.
+      if (account?.provider === "email-code" && user) {
+        const u = user as any;
+        token.backendToken = u.backendToken;
+        token.userId = u.id;
+        token.displayName = u.displayName;
+        token.phoneNumber = u.phoneNumber;
+        token.type = u.type;
+        return token;
+      }
+
+      // On initial Google sign in, fetch user data from backend
+      if (account?.provider === "google" && user) {
         console.log("Fetching backend data for user:", user.email);
 
         const cookieStore = await cookies();
@@ -91,6 +148,9 @@ export const authOptions: NextAuthOptions = {
       console.log("Session callback - final session:", session);
       return session;
     },
+  },
+  session: {
+    strategy: "jwt",
   },
   pages: {
     signIn: "/auth/signin",

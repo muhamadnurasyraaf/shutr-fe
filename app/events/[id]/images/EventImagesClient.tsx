@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { recordEventView } from "@/lib/creator-events";
 import Image from "next/image";
 import Link from "next/link";
 import { Header } from "@/app/components/Header";
@@ -40,6 +41,11 @@ export default function EventImagesClient({
 }: EventImagesClientProps) {
   const { event, images, pagination } = initialData;
   const api = useClientAPI();
+
+  // Count a view once per page load (best-effort) for the creator's metrics.
+  useEffect(() => {
+    if (event?.id) recordEventView(event.id);
+  }, [event?.id]);
 
   const [selectedImage, setSelectedImage] = useState<EventImage | null>(null);
   const [currentPage, setCurrentPage] = useState(pagination.page);
