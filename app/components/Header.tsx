@@ -19,6 +19,8 @@ import {
   AlertCircle,
   CalendarDays,
   Wallet,
+  LayoutDashboard,
+  Settings,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -147,7 +149,10 @@ export function Header({
                     asChild
                     className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
                   >
-                    <Link href="/creator" className="flex items-center gap-2">
+                    <Link
+                      href={userType === "Creator" ? "/creator" : "/customer/profile"}
+                      className="flex items-center gap-2"
+                    >
                       <User className="h-4 w-4" />
                       <span>Profile</span>
                       {userType === "Creator" &&
@@ -172,6 +177,20 @@ export function Header({
                         </div>
                       </div>
                     )}
+                  {userType === "Creator" && isProfileComplete && (
+                    <DropdownMenuItem
+                      asChild
+                      className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                    >
+                      <Link
+                        href="/creator/dashboard"
+                        className="flex items-center gap-2"
+                      >
+                        <LayoutDashboard className="h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   {userType === "Creator" && isProfileComplete && (
                     <DropdownMenuItem
                       asChild
@@ -226,6 +245,20 @@ export function Header({
                       <span>My Saved Contents</span>
                     </Link>
                   </DropdownMenuItem>
+                  {userType !== "Creator" && (
+                    <DropdownMenuItem
+                      asChild
+                      className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+                    >
+                      <Link
+                        href="/customer/settings"
+                        className="flex items-center gap-2"
+                      >
+                        <Settings className="h-4 w-4" />
+                        <span>Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
 
                   <DropdownMenuItem
                     onClick={() => signOut({ callbackUrl: "/auth/signin" })}

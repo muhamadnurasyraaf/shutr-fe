@@ -374,7 +374,13 @@ export default function PhotographerProfile({ user }: ProfilePageProps) {
       }
 
       if (success) {
-        showToast("Changes saved successfully!");
+        // Hand the confirmation to the dashboard and move the user off the edit
+        // form so they land on an overview instead of staring at the fields.
+        sessionStorage.setItem(
+          "creatorDashboardMessage",
+          "Changes saved successfully!",
+        );
+        router.push("/creator/dashboard");
       } else {
         showToast("Failed to save changes", "error");
       }

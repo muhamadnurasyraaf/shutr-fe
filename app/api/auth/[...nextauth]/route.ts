@@ -61,7 +61,20 @@ export const authOptions: NextAuthOptions = {
           }
         );
 
-        if (!response.ok) return null;
+        if (!response.ok) {
+          // 409 = the email belongs to an account of a different type. Throw the
+          // backend's message so NextAuth surfaces it to the UI (a thrown error's
+          // message reaches signIn's result.error; returning null would only give
+          // a generic "CredentialsSignin").
+          if (response.status === 409) {
+            const data = await response.json().catch(() => null);
+            throw new Error(
+              data?.message ||
+                "This email is registered under a different account type."
+            );
+          }
+          return null;
+        }
 
         const data = await response.json();
         // Shape must satisfy NextAuth's User; the extra fields are carried into
@@ -80,6 +93,36 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    // Google OAuth: NextAuth has already authenticated the Google account by the
+    // time jwt() runs, and an error thrown there only yields a generic "Callback"
+    // code. The signIn callback is the one place a thrown message survives, so we
+    // enforce the account-type match here and block a wrong-type login with a
+    // readable message (surfaced on /auth/signin via pages.error).
+    async signIn({ account }) {
+      if (account?.provider === "google") {
+        const cookieStore = await cookies();
+        const userType = cookieStore.get("pending_user_type")?.value;
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/auth/google`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: userType,
+              idToken: account.id_token,
+            }),
+          }
+        );
+        if (res.status === 409) {
+          const data = await res.json().catch(() => null);
+          throw new Error(
+            data?.message ||
+              "This email is registered under a different account type."
+          );
+        }
+      }
+      return true;
+    },
     async jwt({ token, user, account, trigger }) {
       // Passwordless email sign-in: authorize() already returned the backend
       // token and user fields, so copy them straight into the JWT.
@@ -154,6 +197,9 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/auth/signin",
+    // Send auth errors (e.g. a wrong account-type block) back to our own sign-in
+    // page as ?error=<message> instead of NextAuth's default error page.
+    error: "/auth/signin",
   },
   debug: process.env.NODE_ENV === "development",
 };

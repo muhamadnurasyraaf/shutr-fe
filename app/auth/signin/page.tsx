@@ -1,15 +1,53 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Cookies from "js-cookie";
 
 type UserType = "Creator" | "Customer";
 
+// NextAuth's built-in error codes we don't want to show to the user verbatim —
+// map them to one friendly line. Anything else (e.g. our wrong-account-type
+// message) is a human-readable sentence and is shown as-is.
+const NEXTAUTH_ERROR_CODES = new Set([
+  "Configuration",
+  "AccessDenied",
+  "Verification",
+  "OAuthSignin",
+  "OAuthCallback",
+  "OAuthCreateAccount",
+  "OAuthAccountNotLinked",
+  "EmailCreateAccount",
+  "Callback",
+  "CredentialsSignin",
+  "SessionRequired",
+  "Default",
+]);
+
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState<UserType | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Surface auth errors redirected here as ?error= (e.g. a Google login blocked
+  // for the wrong account type), then strip the param so a refresh won't re-show.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (!err) return;
+    setError(
+      NEXTAUTH_ERROR_CODES.has(err)
+        ? "Sign in failed. Please try again."
+        : err
+    );
+    params.delete("error");
+    const qs = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      window.location.pathname + (qs ? `?${qs}` : "")
+    );
+  }, []);
 
   // Passwordless email-code flow state.
   const [emailType, setEmailType] = useState<UserType>("Customer");
@@ -84,7 +122,14 @@ export default function SignIn() {
         callbackUrl,
       });
       if (result?.error) {
-        setError("Invalid or expired code. Please try again.");
+        // NextAuth returns "CredentialsSignin" for a plain rejected login (bad
+        // code); a wrong-account-type block comes back as the specific message
+        // thrown in authorize(), so surface that verbatim.
+        setError(
+          result.error === "CredentialsSignin"
+            ? "Invalid or expired code. Please try again."
+            : result.error
+        );
         return;
       }
       window.location.href = result?.url || callbackUrl;
