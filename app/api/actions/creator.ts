@@ -77,6 +77,7 @@ export interface ContentImage {
   url: string;
   description: string | null;
   createdAt: string;
+  processingStatus?: "pending" | "processing" | "done" | "failed";
 }
 
 export interface ContentEvent {

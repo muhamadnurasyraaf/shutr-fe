@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Header } from "@/app/components/Header";
 import { useRouter } from "next/navigation";
+import { useUploads } from "@/app/contexts/UploadContext";
 import {
   fetchCreatorContents,
   type EventGroup,
@@ -127,6 +128,33 @@ function CreatorContentsContent() {
 
     fetchData();
   }, [status, session?.user?.id]);
+
+  // Live-refresh while photos are still processing (bib/plate + face embedding)
+  // or uploads are in flight, so badges flip to ready without a manual refresh.
+  const { activeCount } = useUploads();
+  useEffect(() => {
+    if (status !== "authenticated" || !session?.user?.id) return;
+    const hasPending = eventGroups.some((g) =>
+      g.images.some(
+        (i) =>
+          i.processingStatus === "pending" ||
+          i.processingStatus === "processing",
+      ),
+    );
+    if (!hasPending && activeCount === 0) return;
+
+    const uid = session.user.id;
+    const timer = setInterval(async () => {
+      try {
+        const data = await fetchCreatorContents(uid);
+        setEventGroups(data.eventGroups);
+        setTotalImages(data.totalImages);
+      } catch {
+        // transient; next tick retries
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [status, session?.user?.id, eventGroups, activeCount]);
 
   // Filter and sort the event groups
   const filteredGroups = useMemo(() => {
@@ -456,6 +484,20 @@ function CreatorContentsContent() {
                           alt={photo.description || "Photo"}
                           className="size-full object-cover transition-opacity duration-200 group-hover:opacity-90"
                         />
+
+                        {/* Processing status badge */}
+                        {(photo.processingStatus === "pending" ||
+                          photo.processingStatus === "processing") && (
+                          <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
+                            <span className="size-1.5 animate-pulse rounded-full bg-cyan-400" />
+                            Processing
+                          </div>
+                        )}
+                        {photo.processingStatus === "failed" && (
+                          <div className="absolute bottom-1.5 left-1.5 rounded-full bg-red-500/90 px-2 py-0.5 text-[10px] font-medium text-white">
+                            Failed
+                          </div>
+                        )}
 
                         {/* Checkbox Overlay */}
                         <div

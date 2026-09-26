@@ -17,7 +17,6 @@ import {
   Camera,
   Heart,
   AlertCircle,
-  CalendarDays,
   Wallet,
   LayoutDashboard,
   Settings,
@@ -202,20 +201,6 @@ export function Header({
                       >
                         <Camera className="h-4 w-4" />
                         <span>My Uploaded Contents</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  {userType === "Creator" && isProfileComplete && (
-                    <DropdownMenuItem
-                      asChild
-                      className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
-                    >
-                      <Link
-                        href="/creator/events"
-                        className="flex items-center gap-2"
-                      >
-                        <CalendarDays className="h-4 w-4" />
-                        <span>My Events</span>
                       </Link>
                     </DropdownMenuItem>
                   )}

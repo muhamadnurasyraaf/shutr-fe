@@ -8,10 +8,15 @@ import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
 import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 
 // Leaflet's default marker icon paths break under bundlers; build one explicitly.
+// Image imports resolve to a plain URL string under Turbopack and to an
+// `{ src }` object under Webpack — normalize both.
+const assetUrl = (mod: unknown): string =>
+  typeof mod === "string" ? mod : (mod as { src: string }).src;
+
 const markerIcon = L.icon({
-  iconUrl: (iconUrl as unknown as { src: string }).src,
-  iconRetinaUrl: (iconRetinaUrl as unknown as { src: string }).src,
-  shadowUrl: (shadowUrl as unknown as { src: string }).src,
+  iconUrl: assetUrl(iconUrl),
+  iconRetinaUrl: assetUrl(iconRetinaUrl),
+  shadowUrl: assetUrl(shadowUrl),
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],

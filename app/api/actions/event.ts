@@ -185,6 +185,21 @@ export async function checkSimilarEvents(
   return response.data?.similarEvents ?? [];
 }
 
+// Event-level pricing tier (e.g. Web/Standard vs Original High-Res).
+export interface PricingTierInput {
+  tier: "WEB" | "ORIGINAL";
+  label: string;
+  price: number;
+  // Longest-edge resolution in px (optional, informational).
+  maxResolution?: number | null;
+}
+
+// Event-level bundle rule: buy at least `minPhotos` for a flat `price`.
+export interface BundleRuleInput {
+  minPhotos: number;
+  price: number;
+}
+
 export interface CreateEventPayload {
   name: string;
   category?: string;
@@ -203,6 +218,9 @@ export interface CreateEventPayload {
   watermarkMode?: "default" | "custom" | "none";
   watermarkText?: string;
   watermarkLogoPublicId?: string;
+  // Event-level pricing (Step 2 of the creation wizard).
+  pricingTiers?: PricingTierInput[];
+  bundleRules?: BundleRuleInput[];
 }
 
 export type CreateEventResult =
@@ -216,6 +234,8 @@ export type CreateEventResult =
         thumbnailUrl?: string;
         status?: string;
         category?: string;
+        pricingTiers?: PricingTierInput[];
+        bundleRules?: BundleRuleInput[];
       };
     }
   | { status: "similar"; similarEvents: SimilarEvent[] };
@@ -248,6 +268,10 @@ export async function createEvent(
     formData.append("watermarkText", payload.watermarkText);
   if (payload.watermarkLogoPublicId)
     formData.append("watermarkLogoPublicId", payload.watermarkLogoPublicId);
+  if (payload.pricingTiers)
+    formData.append("pricingTiers", JSON.stringify(payload.pricingTiers));
+  if (payload.bundleRules)
+    formData.append("bundleRules", JSON.stringify(payload.bundleRules));
 
   try {
     const response = await serverApi.post("/event", formData, {

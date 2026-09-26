@@ -11,7 +11,6 @@ import {
   ShoppingBag,
   Upload,
   FolderOpen,
-  CalendarDays,
   ArrowUpRight,
   Clock,
 } from "lucide-react";
@@ -95,7 +94,6 @@ export default function CreatorDashboardPage() {
   const quickLinks = [
     { label: "Upload photos", href: "/creator/upload", icon: Upload },
     { label: "My contents", href: "/creator/contents", icon: FolderOpen },
-    { label: "Events", href: "/creator/events", icon: CalendarDays },
     { label: "Wallet", href: "/creator/wallet", icon: WalletIcon },
   ];
 

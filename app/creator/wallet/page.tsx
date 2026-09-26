@@ -82,10 +82,10 @@ export default function WalletPage() {
       <div className="min-h-screen bg-slate-100">
         <div className="max-w-3xl mx-auto px-6 py-8 pt-24">
           <Link
-            href="/creator/events"
+            href="/creator/dashboard"
             className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to events
+            <ArrowLeft className="w-4 h-4" /> Back to dashboard
           </Link>
 
           <div className="flex items-center gap-2 mb-6">
